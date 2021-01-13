@@ -1,0 +1,25 @@
+{
+  "name": "yamp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jasmine --config=jasmine.json",
+    "serve": "webpack serve"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.12.10",
+    "@babel/preset-env": "^7.12.11",
+    "@markedjs/html-differ": "^3.0.4",
+    "babel-loader": "^8.2.2",
+    "front-matter": "^4.0.2",
+    "html-webpack-plugin": "^4.5.1",
+    "jasmine": "^3.6.3",
+    "webpack": "^5.13.0",
+    "webpack-cli": "^4.3.1",
+    "webpack-dev-server": "^3.11.1"
+  }
+}
