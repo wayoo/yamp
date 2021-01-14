@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jasmine --config=jasmine.json",
-    "serve": "webpack serve"
+    "test": "webpack && jasmine --config=jasmine.json",
+    "serve": "webpack serve",
+    "build": "webpack"
   },
   "keywords": [],
   "author": "",

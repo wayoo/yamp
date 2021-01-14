@@ -1,9 +1,11 @@
-const marked = require('../../marked/src/marked.js');
+// const marked = require('../../marked/src/marked.js');
+const marked = require('../../dist/main').default;
 const htmlDiffer = require('./html-differ.js');
 const assert = require('assert');
 
 beforeEach(() => {
-  marked.setOptions(marked.getDefaults());
+//   marked.setOptions(marked.getDefaults());
+    console.log(marked);
 
   jasmine.addAsyncMatchers({
     toRender: () => {

@@ -1,3 +1,4 @@
 dist
 node_modules
 marked
+.DS_Store

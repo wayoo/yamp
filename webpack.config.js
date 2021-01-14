@@ -7,6 +7,10 @@ module.exports = {
     output: {
         filename: 'main.js',
         path: path.resolve(__dirname, 'dist'),
+        // libraryTarget: 'umd',
+        libraryTarget: 'umd',
+        library: 'render',
+        globalObject: 'this',
     },
     plugins: [new HtmlWebpackPlugin()],
     module: {
