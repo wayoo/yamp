@@ -3,6 +3,10 @@
 import { 
     HEADER,
     CODE,
+    NL,
+    TEXT,
+    SPACE,
+    HASH,
 } from './globals';
 
 
@@ -16,6 +20,9 @@ function render(treeNode) {
             break;
         case CODE:
             htmlStr = render_code(treeNode);
+            break;
+        case NL:
+            htmlStr = '\n';
             break;
     }
     return htmlStr;
@@ -37,8 +44,30 @@ function comiple(t) {
 
 
 function render_header(t) {
-    console.log(t);
-    return `<h${t.num}>${t.value.trim()}</h${t.num}>\n`;
+    let cTree = t.child[0];
+    const nodes = [];
+    do {
+        nodes.push(cTree)
+        cTree = cTree.sibling;
+    } while(cTree);
+    let trailHashRemoved = false;
+    for (let i = nodes.length - 1; i > 0; i--) {
+        if (nodes[i].type === HASH && !trailHashRemoved) {
+            trailHashRemoved = true;
+            nodes.pop()
+        } else if (nodes[i].type === SPACE) {
+            nodes.pop()
+        } else {
+            break;
+        }
+    }
+    let str = '';
+    for (let i = 0, l = nodes.length; i < l; i++) {
+        str += nodes[i].raw;
+    }
+    str = str.trim()
+
+    return `<h${t.num}>${str}</h${t.num}>`;
 }
 function render_code(t) {
     return `<pre><code>${t.value}</code></pre>`

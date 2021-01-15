@@ -8,7 +8,9 @@ const IN_HEADER_ID = Symbol('in_header_id');
 const IN_TEXT = Symbol('in_text');
 export const IN_NL = Symbol('in_nl');
 export const IN_FSPACE = Symbol('in_four_space');
+export const IN_ESCAPE = Symbol('in_escape \\');
 const DONE = Symbol('done');
+
 
 
 
@@ -37,6 +39,9 @@ export const RPAREN = Symbol('right_parentheis');
 export const SPACE = Symbol('space');
 export const TAB = Symbol('tab');
 export const HASH = Symbol('hash_tag');
+export const BACKSLASH = Symbol('back_slash');
+export const CHAR = Symbol('char');
+
 
 export {
     TRUE,

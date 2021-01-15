@@ -29,6 +29,7 @@ import {
     FSPACE,
 
     CODE,
+    CHAR,
 } from './globals';
 
 class TreeNode {
@@ -46,12 +47,13 @@ class TokenHelper {
     constructor() {
         this.tokenStringList = [];
     }
-    get() {
-        // console.log(tokenType, tokenString);
+    getAndCache() {
+        // console.log('====>:', tokenType, tokenString);
         this.tokenStringList.push(tokenString);
         ({ tokenType, tokenString } = scaner.getToken());
     }
     getToken() {
+        // console.log('====>:', tokenType, tokenString);
         ({ tokenType, tokenString } = scaner.getToken());
     }
     dump() {
@@ -93,6 +95,24 @@ function stmt_sequence() {
     return t;
 }
 
+function inline_stmt_sequence() {
+    let t = inline_statement();
+    let p = t;
+    while (tokenType != NL) {
+        console.log("XX", tokenType);
+        let q = inline_statement();
+        if (q !== undefined) {
+            if (t === undefined) {
+                t = p = q;
+            } else {
+                p.sibling = q;
+                p = q;
+            }
+        }
+    }
+    return t;
+}
+
 function statement() {
     let t;
     switch (tokenType) {
@@ -119,7 +139,27 @@ function statement() {
     return t;
 }
 
+function inline_statement() {
+    console.log('inline state mentl');
+    let t;
+    switch(tokenType) {
+        case HASH:
+        case CHAR:
+            if (tokenString === '#') {
+                t = merge_hash_exp();
+            } else {
+                t = default_inline_stmt();
+            }
+            break;
+        default:
+            t = default_inline_stmt();
+            break;
+    }
+    return t;
+}
+
 function newline_stmt() {
+    console.log("new line ....")
     const t = new TreeNode(NL);
     t.raw = tokenString;
     match(NL);
@@ -129,10 +169,11 @@ function newline_stmt() {
 
 
 function head_stmt() {
+    console.log("^^^^^^^^^^^^^^^^");
     const t = new TreeNode(HEADER);
     let hashCount = 0;
     do {
-        tokenHelper.get();
+        tokenHelper.getAndCache();
         hashCount++;
     } while (tokenType === HASH);
     if (hashCount > 6 || tokenType != SPACE) {
@@ -140,25 +181,29 @@ function head_stmt() {
         // not head_stmt, treat as text_stmt
         console.log("TETETE")
     } else {
-        let val = '';
-        while(tokenType != NL) {
-            // TODO not handling tokenType inside header;
-            val += tokenString;
-            tokenHelper.get();
-            // console.log(tokenType, tokenString);
-        }
-        t.value = val;
-        t.sibling = new TreeNode(NL)
+        match(SPACE);
+        t.child[0] = inline_stmt_sequence();
+        // let val = '';
+        // while(tokenType != NL) {
+        //     // TODO not handling tokenType inside header;
+        //     val += tokenString;
+        //     tokenHelper.getAndCache);
+        //     // console.log(tokenType, tokenString);
+        // }
+        // t.value = val;
+        // t.sibling = new TreeNode(NL)
     }
     t.num = hashCount;
     t.raw = tokenHelper.dump();
     return t;
 }
 
-function text_stmt() {
-    const t = new TreeNode(TEXT);
+function default_inline_stmt() {
+    const t = new TreeNode("default inline stmt");
+    console.error(tokenType, tokenString);
     t.raw = tokenString;
-    tokenHelper.getToken();
+    t.rawType = tokenType;
+    tokenHelper.getAndCache();
     return t;
 }
 
@@ -166,7 +211,7 @@ function text_stmt() {
 function space_stmt() {
     let i = 0;
     do {
-        tokenHelper.get();
+        tokenHelper.getAndCache();
         i++;
     } while (tokenType === SPACE);
     const t = new TreeNode(SPACE);
@@ -179,7 +224,7 @@ function space_stmt() {
 
 function four_space_stmt() {
     do {
-        tokenHelper.get();
+        tokenHelper.getAndCache();
     } while (tokenType !== NL && tokenType !== END);
     // tokenType === NL
     const t = new TreeNode(CODE);
@@ -190,9 +235,37 @@ function four_space_stmt() {
 }
 
 
+function merge_hash_exp() {
+    const t = new TreeNode(HASH);
+    let s = '';
+    do {
+        s += tokenString;
+        tokenHelper.getAndCache();
+    } while(tokenString === '#')
+    t.raw = s;
+    t.value = s;
+    return t;
+}
+
+
+function line_exp() {
+    const t = new treeNode();
+}
+
+
 let INDENT = 0;
 function printTree(treeNode) {
-    console.log(treeNode.type, treeNode.raw);
+    console.log(' '.repeat(INDENT), treeNode.type, treeNode.raw, treeNode.rawType);
+    let l = treeNode.child.length;
+    if (l > 0) {
+        INDENT += 4;
+        for (let i = 0; i < l; i++) {
+            printTree(treeNode.child[i]);
+        } 
+        INDENT -= 4;
+    }
+
+
     if (treeNode.sibling) {
         printTree(treeNode.sibling);
     }

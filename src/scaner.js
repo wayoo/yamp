@@ -8,6 +8,7 @@ import {
     IN_TEXT,
     IN_OPEN_BRACKET,
     IN_NL,
+    IN_ESCAPE,
 
     DONE,
 
@@ -15,6 +16,7 @@ import {
     TEXT,
     END,
 
+    CHAR,
     FSPACE,
     SPACE,
     TAB,
@@ -28,6 +30,7 @@ import {
     RPAREN,
     HASH,
     IN_FSPACE,
+    BACKSLASH,
 } from './globals'
 
 const HTMLElement = {
@@ -47,8 +50,9 @@ const HTMLElement = {
 
 // let str = "###### 1 ############# 1212 \nsdasd\n--[1212](asasas) 阿萨说 阿萨说";
 // let str = "    # foo\n";
-let str = "    # foo\n";
-// let str = "#                  foo                     \n";
+// let str = "    # foo\n";
+// let str = "### foo \\###1\n## foo #\\##\n# foo \\#\n";
+let str = "#                  foo                     \n";
 // let str = " ### foo\n  ## foo\n   # foo\n";
 // let str = "#                  foo                     \n";
 let i = 0;
@@ -96,6 +100,8 @@ const elementStartMark = [
     '(',
     ')',
     '\n',
+    ' ',
+    '\\',
 ];
 
 // return token once a time
@@ -120,17 +126,17 @@ function getToken() {
             c
         } = getNextChar();
         // !!!!
-        // i pointer to next position
-
-        // console.log(`input ${_di}:` + c);
+        // i pointer to next character's position, not currrent c's position
         switch (state) {
             case START:
-                if (c == ' ' && i === 1 && preFSpace) {
+                if (c == '\\') { // handle escape mark (backslash);
+                    tokenStringIndex = i; // ignore current '\' mark, direct point to next char
+                    state = IN_ESCAPE;
+                } else if (c == ' ' && i === 1 && preFSpace) { // handle start 4 space
                     tokenStringIndex = 0;
                     state = IN_FSPACE;
                     break;
-                } else if (c == '\n') {
-                    console.error("LLLL")
+                } else if (c == '\n') {  // handle newline 4 space 
                     state = IN_NL;
                     tokenStringIndex = i-1;
                     break;
@@ -228,22 +234,9 @@ function getToken() {
                     currentTokenType = TEXT;
                 }
                 break;
-            case IN_HEADER:
-                if (c == '#' && ((i - tokenStringIndex) <= 5)) {
-                    continue
-                } else if (c == ' ') {
-                    state = IN_HEADER_ID;
-                    currentTokenType = HEADER;
-                    // currentTokenType = HTMLElement[`H${i-tokenStringIndex}`];
-                    // tokenStringIndex = i + 1;
-                } else {
-                    state = IN_TEXT;
-                }
-                break;
-            case IN_HEADER_ID:
-                if (c === '\n') {
-                    state = DONE;
-                }
+            case IN_ESCAPE:
+                currentTokenType = CHAR;
+                state = DONE;
                 break;
             default:
                 console.error(state, `State Error input ${c}`);

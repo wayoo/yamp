@@ -8,7 +8,6 @@ import { END } from './globals';
 // while (scaner.getToken().type != END) {
 // }
 const ast = parser.parse()
-console.log('0000')
 console.log(render(ast));
 
 if (typeof window !== "undefined") {
