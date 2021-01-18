@@ -74,7 +74,7 @@ class TokenHelper {
         // logger.log('====>:', tokenType, tokenString);
     }
     prevToken() {
-        return this.cachedTokenList[this.cachedTokenList.length - 1];
+        return this.cachedTokenList[this.cachedTokenList.length - 2];
     }
     dump() {
         const str = this.cachedTokenList.map((item) => item.tokenString).join('');
@@ -173,7 +173,10 @@ function statement() {
             t = simple_node(HR);
             break;
         case ASTERISK:
-            t = em_stmt();
+            t = em_stmt(ASTERISK, '*');
+            break;
+        case UNDERSCORE:
+            t = em_stmt(UNDERSCORE, '_');
             break;
         default:
             logger.error("not handled ", tokenType, tokenString);
@@ -203,7 +206,10 @@ function inline_statement() {
             t = space_stmt();
             break;
         case ASTERISK:
-            t = em_stmt();
+            t = em_stmt(ASTERISK, '*');
+            break;
+        case UNDERSCORE:
+            t = em_stmt(UNDERSCORE, '_');
             break;
         default:
             t = default_inline_stmt();
@@ -299,6 +305,46 @@ function merge_hash_exp() {
     return t;
 }
 
+function em_stmt(tT, tS) {
+    matchWithCache(tT);
+    let t, str = '';
+    if (tokenType === SPACE) {
+        t = new TreeNode(CHAR);
+        t.raw = tS;
+        return t;
+    } else if (tokenType === tT) {
+        t = double_em_stmt(tT, tS.repeat(2));
+        return t;
+    } else {
+        while(tokenType != NL && tokenType !== tT && tokenType !== END) {
+            str += tokenString;
+            tokenHelper.getAndCache();
+        }        
+        if (tokenType === NL || END) {
+            t = new TreeNode(TEXT);
+            t.raw = tS + str;
+            return t;
+        }
+        if (tokenType === tT) {
+            const prevToken = tokenHelper.prevToken();
+            if (prevToken.tokenType === SPACE) {
+                t = new TreeNode(TEXT);
+                t.raw = tS + str;
+            } else {
+                match(tT);
+                t = new TreeNode(EM);
+                t.raw = tS + str + tS;
+                t.value = str;
+            }
+            return t;
+        }
+        t = new TreeNode('Unknow EM STMT');
+        t.raw = str;
+        return t;
+    }
+}
+
+/*
 function em_stmt() {
     logger.log('em_stmt ', tokenType, tokenString);
     matchWithCache(ASTERISK);
@@ -349,45 +395,49 @@ function em_stmt() {
         return t;
     }
 }
+*/
 
-function double_em_stmt() {
+function double_em_stmt(tT, tS) {
+    console.log("~~~~~~~#@")
     let t, str = '';
-    matchWithCache(ASTERISK);
-    if (tokenType === SPACE || tokenType === ASTERISK) {
+    matchWithCache(tT);
+    if (tokenType === SPACE || tokenType === tT) {
         t = new TreeNode(TEXT);
-        t.raw = "**";
+        t.raw = tS;
         return t;
     } else {
-        do {
+        while(tokenType !== NL && tokenType !== tT && tokenType !== END) {
             str += tokenString;
             tokenHelper.getAndCache();
-        } while(tokenType !== NL && tokenType !== ASTERISK && tokenType !== END);
-        if (tokenType === NL) {
+        } 
+        if (tokenType === NL || END) {
             t = new TreeNode(TEXT);
-            t.raw = '**' + str;
+            t.raw = tS + str;
             return t;
         }
-        if (tokenType === ASTERISK) {
+        if (tokenType === tT) {
             const prevToken = tokenHelper.prevToken();
+            console.log(prevToken);
             if (prevToken.tokenType === SPACE) {
                 t = new TreeNode(TEXT);
-                t.raw = '**' + str;
+                t.raw = tS + str;
+                console.error(t);
                 return t;
             } else {
-                match(ASTERISK);
-                if (tokenType === ASTERISK) {
-                    match(ASTERISK);
+                match(tT);
+                if (tokenType === tT) {
+                    match(tT);
                     t = new TreeNode(STRONG);
-                    t.raw = '**' + str + '**';
+                    t.raw = tS + str + tS;
                     t.value = str;
                     return t;
                 } else {
                     // TODO, put back
                 }
             }
-            t = new TreeNode('Unknow STRONG STMT');
-            return t;
         }
+        t = new TreeNode('Unknow STRONG STMT');
+        return t;
     }
 }
 
@@ -418,7 +468,7 @@ function printTree(treeNode) {
 let rootT;
 
 function parse() {
-    ({ tokenType, tokenString } = scaner.getToken());
+    ({ tokenType, tokenString } = tokenHelper.getAndCache());
     rootT = null;
     rootT = stmt_sequence();
     if (tokenType != END) {

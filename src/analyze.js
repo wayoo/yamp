@@ -32,12 +32,12 @@ function preProcess(t) {
 
 function mergeTextSibling(t) {
     if (t.type === TEXT) {
-        while([SPACE, TEXT].includes(t.sibling.type)) {
+        while([SPACE, TEXT].includes(t.sibling && t.sibling.type)) {
             const sib = t.sibling;
             t.raw += sib.raw;
             t.sibling = sib.sibling;
         }
-        while([EM, STRONG].includes(t.sibling.type)) {
+        while([EM, STRONG].includes(t.sibling && t.sibling.type)) {
             const n = t.sibling.sibling;
             // FIXME 
             t.child[0] = t.sibling;
