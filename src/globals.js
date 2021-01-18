@@ -11,7 +11,8 @@ export const IN_FSPACE = Symbol('in_four_space');
 export const IN_ESCAPE = Symbol('in_escape \\');
 export const IN_HR = Symbol('in_hr');
 const DONE = Symbol('done');
-
+export const IN_ASTERISK = Symbol('in_asterisk');
+export const IN_ASTERISK_DOUBLE = Symbol('in_asterisk_double');
 
 
 
@@ -24,6 +25,7 @@ const FSPACE = Symbol('four_space');
 // HTML Elemet
 export const CODE = Symbol('code');
 export const HR = Symbol('hr');
+export const EM = Symbol('em');
 
 // special symbols
 // *

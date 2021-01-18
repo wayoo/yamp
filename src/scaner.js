@@ -34,6 +34,7 @@ import {
     BACKSLASH,
     HR,
 } from './globals'
+import logger from './logger';
 
 const HTMLElement = {
     H1: Symbol('h1'),
@@ -56,7 +57,7 @@ const HTMLElement = {
 let str = "";
 // let str = "####### foo\n";
 // let str = "####### foo\n";
-// console.log('Expect: ', '<p>####### foo</p>\n');
+// logger.log('Expect: ', '<p>####### foo</p>\n');
 // let str = " ### foo\n  ## foo\n   # foo\n";
 // let str = "#                  foo                     \n";
 let i = 0;
@@ -166,7 +167,6 @@ function getToken() {
                     tokenStringIndex = i; // ignore current '\' mark, direct point to next char
                     state = IN_ESCAPE;
                 } else if (c == '\n') {
-                    console.log("in  hhh")
                     state = IN_NL;
                     tokenStringIndex = i - 1;
                     break;
@@ -214,12 +214,11 @@ function getToken() {
                             currentTokenType = NL;
                             break
                         default:
-                            console.error('cant handle from START: ' + c);
+                            logger.error('cant handle from START: ' + c);
                     }
                 }
                 break;
             case IN_NL:
-                console.log("  IN_NL  ")
                 // if not first element ( i === 1) , generate new line token first
                 state = DONE;
                 currentTokenType = NL;
@@ -252,26 +251,22 @@ function getToken() {
                 if (c === '#' && ((i - tokenStringIndex) <= 7)) {
                     continue;
                 } else {
-                    console.error(c, tokenStringIndex, i);
                     if ((i - tokenStringIndex > 7)) {
                         // not valid header token
                         state = IN_TEXT;
                         continue;
                     } else if (c === ' ') {
-                        console.log("======>")
                         currentTokenType = HEADER;
                         state = DONE;
                     } else if (c === '\n') {
                         ungetNextChar();
                         currentTokenType = HEADER;
-                        console.error("=====>", currentTokenType);
                         state = DONE;
                     } else {
                         state = IN_TEXT;
                         continue;
                     }
                 }
-                console.log(c);
                 break;
             case IN_HR:
                 if (c == '*' && ((i-tokenStringIndex) < 3)) {
@@ -293,7 +288,6 @@ function getToken() {
                 }
                 break;
             case IN_FSPACE:
-                console.log("Vvvvvv", c, i - tokenStringIndex);
                 if (c == ' ' && ((i - tokenStringIndex) < 5)) {
                     continue
                 } else {
@@ -324,7 +318,7 @@ function getToken() {
                 state = DONE;
                 break;
             default:
-                console.error(state, `State Error input ${c}`);
+                logger.error(state, `State Error input ${c}`);
                 state = DONE;
                 break;
         }

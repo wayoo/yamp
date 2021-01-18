@@ -2,8 +2,8 @@ import scaner from './scaner';
 import parser from './parser';
 import analyze from './analyze';
 import render from './render';
-import { END } from './globals';
-
+import { END, TRUE } from './globals';
+import logger from './logger';
 
 // window.scanner = scaner;
 // while (scaner.getToken().type != END) {
@@ -13,16 +13,20 @@ if (typeof window !== "undefined") {
     // window.scaner = scaner;
     window.run = run;
 }
-function run(str) {
-    console.log(str);
+function run(str, isDebug) {
+    logger.setDebug(isDebug);
+    if (isDebug) {
+        console.log(str);
+    }
     scaner.load(str);
     const ast = parser.parse();
     analyze(ast);
     return render(ast);
 }
 
-console.log("EXpect: ", '<h3>foo ###</h3>\n<h2>foo ###</h2>\n<h1>foo #</h1>\n');
-console.log(run("### foo \\###\n## foo #\\##\n# foo \\#\n"));
+console.log("EXpect: ", '<h1>foo <em>bar</em> *baz*</h1>\n');
+// console.log(run("# foo *bar* \\*baz\\*\n"));
+console.log(run("foo\n    # bar\n", true));
 
 
 

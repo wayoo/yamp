@@ -8,30 +8,37 @@ import {
     SPACE,
     HASH,
     HR,
+    EM,
 } from './globals';
 
 // const t = parser.parse()
 
-function render(treeNode) {
-    let htmlStr = '';
-    switch(treeNode.type) {
+function render(t) {
+    let s = '';
+    switch(t.type) {
         case HEADER:
-            htmlStr = render_header(treeNode);
+            s = render_header(t);
             break;
         case CODE:
-            htmlStr = render_code(treeNode);
+            s = render_code(t);
             break;
         case NL:
-            htmlStr = '\n';
+            s = '\n';
             break;
         case TEXT:
-            htmlStr = render_text(treeNode);
+            s = render_text(t);
             break;
         case HR:
-            htmlStr = render_hr();
+            s = render_hr();
+            break;
+        case EM:
+            s = render_em(t);
+            break;
+        default:
+            s = t.raw;
             break;
     }
-    return htmlStr;
+    return s;
 }
 
 function traverse(t, str) {
@@ -95,7 +102,8 @@ function render_header(t) {
     }
     let str = '';
     for (let i = 0, l = nodes.length; i < l; i++) {
-        str += nodes[i].raw;
+        // str += nodes[i].raw;
+        str += render(nodes[i]);
     }
     str = str.trim()
 
@@ -116,6 +124,10 @@ function render_text(t) {
 
 function render_hr() {
     return `<hr />`;
+}
+
+function render_em(t) {
+    return `<em>${t.value}</em>`;
 }
 
 export default comiple;
