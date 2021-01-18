@@ -9,6 +9,7 @@ const IN_TEXT = Symbol('in_text');
 export const IN_NL = Symbol('in_nl');
 export const IN_FSPACE = Symbol('in_four_space');
 export const IN_ESCAPE = Symbol('in_escape \\');
+export const IN_HR = Symbol('in_hr');
 const DONE = Symbol('done');
 
 
@@ -22,6 +23,7 @@ const FSPACE = Symbol('four_space');
 
 // HTML Elemet
 export const CODE = Symbol('code');
+export const HR = Symbol('hr');
 
 // special symbols
 // *
@@ -41,7 +43,6 @@ export const TAB = Symbol('tab');
 export const HASH = Symbol('hash_tag');
 export const BACKSLASH = Symbol('back_slash');
 export const CHAR = Symbol('char');
-
 
 export {
     TRUE,

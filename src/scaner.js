@@ -8,6 +8,7 @@ import {
     IN_TEXT,
     IN_OPEN_BRACKET,
     IN_NL,
+    IN_HR,
     IN_ESCAPE,
 
     DONE,
@@ -31,6 +32,7 @@ import {
     HASH,
     IN_FSPACE,
     BACKSLASH,
+    HR,
 } from './globals'
 
 const HTMLElement = {
@@ -51,22 +53,26 @@ const HTMLElement = {
 // let str = "###### 1 ############# 1212 \nsdasd\n--[1212](asasas) 阿萨说 阿萨说";
 // let str = "    # foo\n";
 // let str = "    # foo\n";
-// let str = "### foo \\###1\n## foo #\\##\n# foo \\#\n";
-let str = "#                  foo                     \n";
+let str = "";
+// let str = "####### foo\n";
+// let str = "####### foo\n";
+// console.log('Expect: ', '<p>####### foo</p>\n');
 // let str = " ### foo\n  ## foo\n   # foo\n";
 // let str = "#                  foo                     \n";
 let i = 0;
-let preFSpace = true;
+// let preFSpace = true;
 let tokenStringIndex = 0;
 let currentTokenType;
 let nextTokenType = null;
 let nextTokenString = null;
+let nextState = null;
+let isBlockToken = true;
 
 
 function load(s) {
     str = s;
     i = 0;
-    preFSpace = true;
+    // preFSpace = true;
     tokenStringIndex = 0;
 }
 // let str = "--";
@@ -107,7 +113,13 @@ const elementStartMark = [
 // return token once a time
 function getToken() {
     let save = TRUE;
-    let state = START;
+    let state;
+    if (nextState) {
+        state = nextState;
+        nextState = null;
+    } else {
+        state = START;
+    }
     let _di = 0;
 
     if (nextTokenType !== null) {
@@ -129,19 +141,35 @@ function getToken() {
         // i pointer to next character's position, not currrent c's position
         switch (state) {
             case START:
+                // pre check need IN_NL
+                if (i === 1) {
+                    // first element. 
+                    switch (c) {
+                        case '#':
+                            state = IN_HEADER;
+                            currentTokenType = i - 1;
+                            continue;
+                            break;
+                        case ' ':
+                            state = IN_FSPACE;
+                            currentTokenType = i - 1;
+                            continue;
+                            break;
+                        case '*':
+                            state = IN_HR;
+                            currentTokenType = i - 1;
+                            continue;
+                    }
+                }
+                // 
                 if (c == '\\') { // handle escape mark (backslash);
                     tokenStringIndex = i; // ignore current '\' mark, direct point to next char
                     state = IN_ESCAPE;
-                } else if (c == ' ' && i === 1 && preFSpace) { // handle start 4 space
-                    tokenStringIndex = 0;
-                    state = IN_FSPACE;
-                    break;
-                } else if (c == '\n') {  // handle newline 4 space 
+                } else if (c == '\n') {
+                    console.log("in  hhh")
                     state = IN_NL;
-                    tokenStringIndex = i-1;
+                    tokenStringIndex = i - 1;
                     break;
-                    // currentTokenType = SPACE;
-                    // state = DONE;
                 } else if (c == ' ') {
                     currentTokenType = SPACE;
                     state = DONE;
@@ -191,37 +219,94 @@ function getToken() {
                 }
                 break;
             case IN_NL:
+                console.log("  IN_NL  ")
+                // if not first element ( i === 1) , generate new line token first
+                state = DONE;
+                currentTokenType = NL;
+                switch (c) {
+                    case ' ':
+                        nextState = IN_FSPACE;
+                        i = tokenStringIndex + 1;
+                        break;
+                    case '#':
+                        nextState = IN_HEADER;
+                        // set back i to the preused char after determined next State;
+                        i = tokenStringIndex + 1;
+                        break;
+                    case '*':
+                        nextState = IN_HR;
+                        i = tokenStringIndex + 1;
+                        break;
+                    case undefined:
+                        // no more input, do not handle
+                        break;
+                    default:
+                        // nextState = IN_TEXT;
+                        i = tokenStringIndex + 1;
+                        break;
+                }
+                break;
+            case IN_HEADER:
                 // \n take one position, default gap is 1
                 // so need to check five gap to ensure four tab
-                if (c == ' ' && ((i - tokenStringIndex) <= 5)) {
+                if (c === '#' && ((i - tokenStringIndex) <= 7)) {
                     continue;
                 } else {
-                    state = DONE;
-                    // newline and tab, cache for next state
-                    if (i - tokenStringIndex > 5) {
-                        currentTokenType = NL;
-                        nextTokenType = FSPACE;
-                        nextTokenString = '    ';
-                        i = tokenStringIndex + 5;
-                    } else if (c !== ' ') {
-                        // newline not followed by 4 space
-                        // put back consumed index;
-                        currentTokenType = NL;
-                        // tokenStringIndex;
-                        i = tokenStringIndex + 1;
+                    console.error(c, tokenStringIndex, i);
+                    if ((i - tokenStringIndex > 7)) {
+                        // not valid header token
+                        state = IN_TEXT;
+                        continue;
+                    } else if (c === ' ') {
+                        console.log("======>")
+                        currentTokenType = HEADER;
+                        state = DONE;
+                    } else if (c === '\n') {
+                        ungetNextChar();
+                        currentTokenType = HEADER;
+                        console.error("=====>", currentTokenType);
+                        state = DONE;
+                    } else {
+                        state = IN_TEXT;
+                        continue;
+                    }
+                }
+                console.log(c);
+                break;
+            case IN_HR:
+                if (c == '*' && ((i-tokenStringIndex) < 3)) {
+                    continue;
+                } else {
+                    if ((i - tokenStringIndex) >= 3) {
+                        if (c == ' ' || c == '*') {
+                            continue;
+                        } else if (c == '\n') {
+                            ungetNextChar();
+                            currentTokenType = HR;
+                            state = DONE;
+                        } else {
+                            state = IN_TEXT;
+                        }
+                    } else {
+                        
                     }
                 }
                 break;
             case IN_FSPACE:
-                if (c == ' ' && ((i - tokenStringIndex) < 4)) {
+                console.log("Vvvvvv", c, i - tokenStringIndex);
+                if (c == ' ' && ((i - tokenStringIndex) < 5)) {
                     continue
                 } else {
-                    state = DONE;
-                    if (i - tokenStringIndex >= 4) {
+                    if (i - tokenStringIndex >= 5) {
+                        ungetNextChar();
                         currentTokenType = FSPACE;
+                        state = DONE;
+                    } else if(c === '#'){
+                        // preFSpace = false;
+                        state = IN_HEADER;
+                        tokenStringIndex = i - 1;
                     } else {
-                        preFSpace = false;
-                        i = 0;
+                        state = IN_TEXT;
                     }
                 }
                 break;

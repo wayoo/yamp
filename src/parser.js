@@ -30,6 +30,7 @@ import {
 
     CODE,
     CHAR,
+    HR,
 } from './globals';
 
 class TreeNode {
@@ -45,20 +46,41 @@ let tokenType, tokenString, textCache = [];
 
 class TokenHelper {
     constructor() {
-        this.tokenStringList = [];
+        this.cachedTokenList = [];
+        this.useCachedToken = false;
+        this.usedCacheTokenIndex = 0;
     }
     getAndCache() {
         // console.log('====>:', tokenType, tokenString);
-        this.tokenStringList.push(tokenString);
-        ({ tokenType, tokenString } = scaner.getToken());
+        const token = scaner.getToken();
+        this.cachedTokenList.push(token);
+        ({tokenType, tokenString} = token);
+        return token;
+    }
+    useCachedTokens() {
+        this.useCachedToken = true;
     }
     getToken() {
-        // console.log('====>:', tokenType, tokenString);
+        // if (this.useCachedToken) {
+        //     if (this.usedCacheTokenIndex < this.cachedTokenList ) {
+
+        //     }
+        // } 
+
         ({ tokenType, tokenString } = scaner.getToken());
+        // console.log('====>:', tokenType, tokenString);
     }
     dump() {
-        const str = this.tokenStringList.join('');
-        this.tokenStringList = [];
+        const str = this.cachedTokenList.map((item) => item.tokenString).join('');
+        // const str = this.cachedTokenList.join('');
+        this.cachedTokenList = [];
+        return str;
+    }
+    dumpWithoutCurrent() {
+        this.cachedTokenList.pop();
+        const str = this.cachedTokenList.map((item) => item.tokenString).join('');
+        // const str = this.cachedTokenList.join('');
+        this.cachedTokenList = [];
         return str;
     }
 }
@@ -68,6 +90,14 @@ const tokenHelper = new TokenHelper();
 function match(expectToken) {
     if (tokenType == expectToken) {
         ({ tokenType, tokenString } = scaner.getToken());
+    } else {
+        console.error("[match] unexpected token -> ");
+        console.log(tokenType, tokenString);
+    }
+}
+function matchWithCache(expectToken) {
+    if (tokenType == expectToken) {
+        ({ tokenType, tokenString } = tokenHelper.getAndCache());
     } else {
         console.error("[match] unexpected token -> ");
         console.log(tokenType, tokenString);
@@ -98,8 +128,7 @@ function stmt_sequence() {
 function inline_stmt_sequence() {
     let t = inline_statement();
     let p = t;
-    while (tokenType != NL) {
-        console.log("XX", tokenType);
+    while (tokenType != NL && tokenType != END) {
         let q = inline_statement();
         if (q !== undefined) {
             if (t === undefined) {
@@ -116,13 +145,15 @@ function inline_stmt_sequence() {
 function statement() {
     let t;
     switch (tokenType) {
-        case HASH:
+        case HEADER:
             t = head_stmt();
             break;
         case NL:
             t = newline_stmt();
             break;
         case TEXT:
+        case CHAR:
+        case HASH:
             t = text_stmt();
             break;
         case SPACE:
@@ -130,6 +161,9 @@ function statement() {
             break;
         case FSPACE:
             t = four_space_stmt();
+            break;
+        case HR:
+            t = simple_node(HR);
             break;
         default:
             console.error("not handled ", tokenType, tokenString);
@@ -139,17 +173,24 @@ function statement() {
     return t;
 }
 
+function simple_node (n) {
+    match(n);
+    return new TreeNode(n);
+}
+
 function inline_statement() {
-    console.log('inline state mentl');
+    console.log('inline state mentl', tokenString);
     let t;
     switch(tokenType) {
         case HASH:
-        case CHAR:
             if (tokenString === '#') {
                 t = merge_hash_exp();
             } else {
                 t = default_inline_stmt();
             }
+            break;
+        case SPACE:
+            t = space_stmt();
             break;
         default:
             t = default_inline_stmt();
@@ -167,36 +208,59 @@ function newline_stmt() {
     return t;
 }
 
-
-function head_stmt() {
-    console.log("^^^^^^^^^^^^^^^^");
-    const t = new TreeNode(HEADER);
-    let hashCount = 0;
-    do {
-        tokenHelper.getAndCache();
-        hashCount++;
-    } while (tokenType === HASH);
-    if (hashCount > 6 || tokenType != SPACE) {
-        console.log(tokenType);
-        // not head_stmt, treat as text_stmt
-        console.log("TETETE")
-    } else {
-        match(SPACE);
-        t.child[0] = inline_stmt_sequence();
-        // let val = '';
-        // while(tokenType != NL) {
-        //     // TODO not handling tokenType inside header;
-        //     val += tokenString;
-        //     tokenHelper.getAndCache);
-        //     // console.log(tokenType, tokenString);
-        // }
-        // t.value = val;
-        // t.sibling = new TreeNode(NL)
-    }
-    t.num = hashCount;
-    t.raw = tokenHelper.dump();
+function text_stmt() {
+    console.log(tokenType, tokenString);
+    const t = new TreeNode(TEXT);
+    t.raw = tokenString;
+    tokenHelper.getToken();
+    // match(NL);
     return t;
 }
+
+function head_stmt() {
+    console.log("^^^^^^^^^^^^^^^^", tokenString);
+    const t = new TreeNode(HEADER);
+    t.num = tokenString.trim().length;
+
+    match(HEADER);
+
+    console.log(")))))))))", tokenType, JSON.stringify(tokenString))
+    if(tokenType === NL){
+        // directly followed by newline element, have no children;
+        return t;    
+    } else {
+        t.child[0] = inline_stmt_sequence();
+        t.raw = tokenHelper.dump();
+    }
+    // t.child[0] = inline_stmt_sequence();
+    // tokenHelper.getAndCache();
+    // if (hashCount > 6 || tokenType != SPACE) {
+    //     console.log(tokenType);
+    //     // not head_stmt, treat as text_stmt
+    //     console.log("TETETE")
+    //     tokenHelper.useCachedToken();
+    //     t = multiline_text_stmt();
+    //     return t;
+    // } else {
+    //     matchWithCache(SPACE);
+    //     t.child[0] = inline_stmt_sequence();
+    //     // let val = '';
+    //     // while(tokenType != NL) {
+    //     //     // TODO not handling tokenType inside header;
+    //     //     val += tokenString;
+    //     //     tokenHelper.getAndCache);
+    //     //     // console.log(tokenType, tokenString);
+    //     // }
+    //     // t.value = val;
+    //     // t.sibling = new TreeNode(NL)
+    // }
+
+    return t;
+}
+
+function multiline_text_stmt() {
+    // t = 
+};
 
 function default_inline_stmt() {
     const t = new TreeNode("default inline stmt");
@@ -207,7 +271,6 @@ function default_inline_stmt() {
     return t;
 }
 
-// filter 4 space
 function space_stmt() {
     let i = 0;
     do {
@@ -216,20 +279,22 @@ function space_stmt() {
     } while (tokenType === SPACE);
     const t = new TreeNode(SPACE);
     t.num = i;
-    t.raw = tokenHelper.dump();
+    t.raw = ' '.repeat(i);
+    // t.raw = tokenHelper.dump();
     // console.log(i)
     // console.log(tokenType, tokenString);
     return t;
 }
 
+// filter 4 space
 function four_space_stmt() {
     do {
         tokenHelper.getAndCache();
     } while (tokenType !== NL && tokenType !== END);
     // tokenType === NL
     const t = new TreeNode(CODE);
-    t.raw = tokenHelper.dump();
-    t.value = t.raw.slice(4);
+    t.value = tokenHelper.dumpWithoutCurrent();
+    t.raw = '    ' + t.value;
 
     return t;
 }
@@ -241,7 +306,7 @@ function merge_hash_exp() {
     do {
         s += tokenString;
         tokenHelper.getAndCache();
-    } while(tokenString === '#')
+    } while(tokenType === HASH)
     t.raw = s;
     t.value = s;
     return t;
@@ -255,7 +320,7 @@ function line_exp() {
 
 let INDENT = 0;
 function printTree(treeNode) {
-    console.log(' '.repeat(INDENT), treeNode.type, treeNode.raw, treeNode.rawType);
+    console.log(' '.repeat(INDENT), treeNode.type, treeNode);
     let l = treeNode.child.length;
     if (l > 0) {
         INDENT += 4;
