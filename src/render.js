@@ -9,6 +9,7 @@ import {
     HASH,
     HR,
     EM,
+    STRONG,
 } from './globals';
 
 // const t = parser.parse()
@@ -33,6 +34,9 @@ function render(t) {
             break;
         case EM:
             s = render_em(t);
+            break;
+        case STRONG:
+            s = render_strong(t);
             break;
         default:
             s = t.raw;
@@ -114,7 +118,10 @@ function render_code(t) {
 }
 
 function render_text(t) {
-    const str = t.raw;
+    let str = t.raw;
+    for (var i = 0, l = t.child.length; i < l; i++) {
+        str += render(t.child[i])
+    }
     if (t.level === 0) {
         return `<p>${str}</p>`;
     } else {
@@ -128,6 +135,10 @@ function render_hr() {
 
 function render_em(t) {
     return `<em>${t.value}</em>`;
+}
+
+function render_strong(t) {
+    return `<strong>${t.value}</strong>`;
 }
 
 export default comiple;

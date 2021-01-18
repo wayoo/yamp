@@ -24,9 +24,9 @@ function run(str, isDebug) {
     return render(ast);
 }
 
-console.log("EXpect: ", '<h1>foo <em>bar</em> *baz*</h1>\n');
+console.log("EXpect: ", '<p>foo <strong>*</strong></p>\n');
 // console.log(run("# foo *bar* \\*baz\\*\n"));
-console.log(run("foo\n    # bar\n", true));
+console.log(run("foo **\\***\n", true));
 
 
 

@@ -33,6 +33,7 @@ import {
     CODE,
     CHAR,
     HR,
+    STRONG,
 } from './globals';
 
 class TreeNode {
@@ -53,7 +54,7 @@ class TokenHelper {
         this.usedCacheTokenIndex = 0;
     }
     getAndCache() {
-        // logger.log('====>:', tokenType, tokenString);
+        logger.log('====>:', tokenType, tokenString);
         const token = scaner.getToken();
         this.cachedTokenList.push(token);
         ({tokenType, tokenString} = token);
@@ -159,6 +160,7 @@ function statement() {
         case TEXT:
         case CHAR:
         case HASH:
+            console.error(tokenType, tokenString)
             t = text_stmt();
             break;
         case SPACE:
@@ -169,6 +171,9 @@ function statement() {
             break;
         case HR:
             t = simple_node(HR);
+            break;
+        case ASTERISK:
+            t = em_stmt();
             break;
         default:
             logger.error("not handled ", tokenType, tokenString);
@@ -295,7 +300,7 @@ function merge_hash_exp() {
 }
 
 function em_stmt() {
-    logger.log('///////// ====> ');
+    logger.log('em_stmt ', tokenType, tokenString);
     matchWithCache(ASTERISK);
     let t;
     let str = '';
@@ -305,8 +310,10 @@ function em_stmt() {
         t.raw = "*";
         return t;
     } else if (tokenType === ASTERISK) {
+        console.log("xxx")
         // match strong em
         t = double_em_stmt();
+        return t;
         // matchWithCache(ASTERISK);
         // if (tokenType === SPACE) {
         //     t = new TreeNode(TEXT);
@@ -344,7 +351,44 @@ function em_stmt() {
 }
 
 function double_em_stmt() {
-
+    let t, str = '';
+    matchWithCache(ASTERISK);
+    if (tokenType === SPACE || tokenType === ASTERISK) {
+        t = new TreeNode(TEXT);
+        t.raw = "**";
+        return t;
+    } else {
+        do {
+            str += tokenString;
+            tokenHelper.getAndCache();
+        } while(tokenType !== NL && tokenType !== ASTERISK && tokenType !== END);
+        if (tokenType === NL) {
+            t = new TreeNode(TEXT);
+            t.raw = '**' + str;
+            return t;
+        }
+        if (tokenType === ASTERISK) {
+            const prevToken = tokenHelper.prevToken();
+            if (prevToken.tokenType === SPACE) {
+                t = new TreeNode(TEXT);
+                t.raw = '**' + str;
+                return t;
+            } else {
+                match(ASTERISK);
+                if (tokenType === ASTERISK) {
+                    match(ASTERISK);
+                    t = new TreeNode(STRONG);
+                    t.raw = '**' + str + '**';
+                    t.value = str;
+                    return t;
+                } else {
+                    // TODO, put back
+                }
+            }
+            t = new TreeNode('Unknow STRONG STMT');
+            return t;
+        }
+    }
 }
 
 

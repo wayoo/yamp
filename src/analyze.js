@@ -1,6 +1,7 @@
 import { CODE, SPACE, TEXT,
     NL,
-
+    EM,
+    STRONG,
 } from "./globals";
 
 let level = 0;
@@ -36,6 +37,12 @@ function mergeTextSibling(t) {
             t.raw += sib.raw;
             t.sibling = sib.sibling;
         }
+        while([EM, STRONG].includes(t.sibling.type)) {
+            const n = t.sibling.sibling;
+            // FIXME 
+            t.child[0] = t.sibling;
+            t.sibling = n;
+        }
     }
     // if (t.type === TEXT && [SPACE, TEXT].includes(t.sibling.type)) {
     // } 
@@ -56,11 +63,6 @@ function recoverInlineElement(t) {
                 nextElem = t.sibling;
                 thirdElem = nextElem ? nextElem.sibling : null;
             }
-            if (nextElem && nextElem.type === NL) {
-                t.raw = t.raw + '\n';
-                t.sibling = nextElem.sibling ? nextElem.sibling : null;
-            }
-
             // while(nextElem && nextElem.type === NL) {
             //     if (thirdElem && [CODE].includes(thirdElem.type)) {
             //         t.raw = t.raw + '\n' + thirdElem.raw;
@@ -74,6 +76,14 @@ function recoverInlineElement(t) {
             //         // thirdElem = nextElem ? nextElem.sibling : null;
             //     }
             // }
+        }
+        if (t.type === CODE) {
+            let nextElem = t.sibling;
+            if (nextElem && nextElem.type === NL) {
+                console.log('merge');
+                t.raw = t.raw + '\n';
+                t.sibling = nextElem.sibling ? nextElem.sibling : null;
+            }
         }
         // if [TEXT].includes(t.type && t.sibling.type === NL) {
 

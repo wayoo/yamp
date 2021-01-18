@@ -26,7 +26,7 @@ const FSPACE = Symbol('four_space');
 export const CODE = Symbol('code');
 export const HR = Symbol('hr');
 export const EM = Symbol('em');
-
+export const STRONG = Symbol('strong');
 // special symbols
 // *
 const ASTERISK = Symbol('asterisk'); 
