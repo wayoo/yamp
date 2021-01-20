@@ -15,6 +15,7 @@ import {
     HEADER,
     TEXT,
     END,
+    PARAGRAPH,
 
     SPACE,
     TAB,
@@ -29,11 +30,15 @@ import {
     HASH,
     FSPACE,
     EM,
+    HYPHEN,
+    
 
     CODE,
     CHAR,
     HR,
     STRONG,
+    RAW,
+    MULTINL,
 } from './globals';
 
 class TreeNode {
@@ -75,6 +80,9 @@ class TokenHelper {
     }
     prevToken() {
         return this.cachedTokenList[this.cachedTokenList.length - 2];
+    }
+    clearCache() {
+        this.cachedTokenList = [];
     }
     dump() {
         const str = this.cachedTokenList.map((item) => item.tokenString).join('');
@@ -148,6 +156,67 @@ function inline_stmt_sequence() {
     return t;
 }
 
+function p_stmt_sequence() {
+    let t = new TreeNode(PARAGRAPH);    
+    t.child[0] = p_statement();
+    let p = t.child[0], q, prev;
+    // add to same paragraph
+    while(![HEADER, END, MULTINL].includes(tokenType)) {
+        q = p_statement();
+        if (q !== undefined) {
+            if (p === undefined) {
+                t.child[0] = p = q;
+            } else {
+                p.sibling = q;
+                prev = p;
+                p = q;
+            }
+        }
+    }
+    // remove last newline symbol from child to sibling
+    if (tokenType === END) {
+        if (q.type === NL) {
+            t.sibling = p;
+            prev.sibling = undefined;
+        }
+    }
+    return t;
+}
+
+function p_statement() {
+    let t;
+    switch(tokenType) {
+        case TEXT:
+            t =  text_stmt();
+            break;
+        case HYPHEN:
+        case CHAR:
+        case HASH:
+            t = raw_stmt();
+            break;
+        case NL:
+            t = newline_stmt()
+            break;
+        case SPACE:
+            t = space_stmt();
+            break;
+        case ASTERISK:
+            t = em_stmt(ASTERISK, '*');
+            break;
+        case UNDERSCORE:
+            t = em_stmt(UNDERSCORE, '_');
+            break;
+        default:
+            // t = default_inline_stmt();
+            logger.error("not handled ", tokenType, tokenString);
+            tokenHelper.getToken();
+            break;
+    }
+    return t;
+}
+// block element, doesn't need double NL to start paragraph
+// HEADER, 
+
 function statement() {
     let t;
     switch (tokenType) {
@@ -157,31 +226,38 @@ function statement() {
         case NL:
             t = newline_stmt();
             break;
-        case TEXT:
-        case CHAR:
-        case HASH:
-            console.error(tokenType, tokenString)
-            t = text_stmt();
+        case MULTINL:
+            t = multi_newline_stmt();
             break;
-        case SPACE:
-            t = space_stmt();
-            break;
+        // case TEXT:
+        //     t =  text_stmt();
+        //     break;
+        // case CHAR:
+        // case HYPHEN:
+        // case HASH:
+        //     t = raw_stmt();
+        //     break;
+        // case SPACE:
+        //     t = space_stmt();
+        //     break;
         case FSPACE:
             t = four_space_stmt();
             break;
         case HR:
             t = simple_node(HR);
             break;
-        case ASTERISK:
-            t = em_stmt(ASTERISK, '*');
-            break;
-        case UNDERSCORE:
-            t = em_stmt(UNDERSCORE, '_');
-            break;
+        // case ASTERISK:
+        //     t = em_stmt(ASTERISK, '*');
+        //     break;
+        // case UNDERSCORE:
+        //     t = em_stmt(UNDERSCORE, '_');
+        //     break;
         default:
-            logger.error("not handled ", tokenType, tokenString);
-            tokenHelper.getToken();
+            console.log("default paragraph");
+            t = p_stmt_sequence();
             break;
+            // tokenHelper.getToken();
+            // break;
     }
     return t;
 }
@@ -227,9 +303,33 @@ function newline_stmt() {
     return t;
 }
 
+function multi_newline_stmt() {
+    const t = new TreeNode(MULTINL);
+    t.raw = tokenString;
+    match(MULTINL);
+    
+    return t;
+}
+
 function text_stmt() {
     logger.log(tokenType, tokenString);
     const t = new TreeNode(TEXT);
+    let str  = '';
+    tokenHelper.clearCache();
+    // at least load one more next token
+    do {
+        str += tokenString
+        tokenHelper.getToken();
+    } while ([TEXT, UNDERSCORE].includes(tokenType))
+    console.log(t);
+    t.raw = str;
+    // match(NL);
+    return t;
+}
+
+function raw_stmt() {
+    const t = new TreeNode(RAW);
+    let str = '';
     t.raw = tokenString;
     tokenHelper.getToken();
     // match(NL);
@@ -307,6 +407,7 @@ function merge_hash_exp() {
 
 function em_stmt(tT, tS) {
     matchWithCache(tT);
+    console.log('match', tT, tokenType);
     let t, str = '';
     if (tokenType === SPACE) {
         t = new TreeNode(CHAR);
@@ -319,8 +420,8 @@ function em_stmt(tT, tS) {
         while(tokenType != NL && tokenType !== tT && tokenType !== END) {
             str += tokenString;
             tokenHelper.getAndCache();
-        }        
-        if (tokenType === NL || END) {
+        }
+        if (tokenType === NL || tokenType === END) {
             t = new TreeNode(TEXT);
             t.raw = tS + str;
             return t;
@@ -410,7 +511,7 @@ function double_em_stmt(tT, tS) {
             str += tokenString;
             tokenHelper.getAndCache();
         } 
-        if (tokenType === NL || END) {
+        if (tokenType === NL || tokenType === END) {
             t = new TreeNode(TEXT);
             t.raw = tS + str;
             return t;

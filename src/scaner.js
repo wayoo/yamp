@@ -33,6 +33,8 @@ import {
     IN_FSPACE,
     BACKSLASH,
     HR,
+    HYPHEN,
+    MULTINL,
 } from './globals'
 import logger from './logger';
 
@@ -102,6 +104,7 @@ const elementStartMark = [
     '`',
     '*',
     '_',
+    '-',
     '[',
     ']',
     '(',
@@ -192,6 +195,9 @@ function getToken() {
                         case '*':
                             currentTokenType = ASTERISK;
                             break;
+                        case '-':
+                            currentTokenType = HYPHEN;
+                            break;
                         case '_':
                             currentTokenType = UNDERSCORE;
                             break;
@@ -220,28 +226,42 @@ function getToken() {
                 break;
             case IN_NL:
                 // if not first element ( i === 1) , generate new line token first
-                state = DONE;
-                currentTokenType = NL;
+                if (c === '\n') {
+                    continue;
+                } else {
+                    console.log(i - tokenStringIndex);
+                    state = DONE;
+                    if (i - tokenStringIndex > 2) {
+                        currentTokenType = MULTINL;
+                    } else {
+                        currentTokenType = NL;
+                    }
+                    // check before
+                }
                 switch (c) {
                     case ' ':
                         nextState = IN_FSPACE;
-                        i = tokenStringIndex + 1;
+                        i--;
+                        // i = tokenStringIndex + 1;
                         break;
                     case '#':
                         nextState = IN_HEADER;
                         // set back i to the preused char after determined next State;
-                        i = tokenStringIndex + 1;
+                        i--
+                        // i = tokenStringIndex + 1;
                         break;
                     case '*':
                         nextState = IN_HR;
-                        i = tokenStringIndex + 1;
+                        i--
+                        // i = tokenStringIndex + 1;
                         break;
                     case undefined:
                         // no more input, do not handle
                         break;
                     default:
                         // nextState = IN_TEXT;
-                        i = tokenStringIndex + 1;
+                        i--
+                        // i = tokenStringIndex + 1;
                         break;
                 }
                 break;
@@ -269,22 +289,26 @@ function getToken() {
                 }
                 break;
             case IN_HR:
-                if (c == '*' && ((i-tokenStringIndex) < 3)) {
+                if (c == '*' && ((i-tokenStringIndex) < 4)) {
                     continue;
                 } else {
-                    if ((i - tokenStringIndex) >= 3) {
+                    if (i - tokenStringIndex === 5) {
+                    }
+                    if ((i - tokenStringIndex) >= 4) {
                         if (c == ' ' || c == '*') {
                             continue;
                         } else if (c == '\n') {
                             ungetNextChar();
                             currentTokenType = HR;
                             state = DONE;
-                        } else {
-                            state = IN_TEXT;
+                            // !!! very important
+                            continue;
                         }
-                    } else {
-                        
                     }
+                    // not hr , restore back to normal input 
+                    state = DONE;
+                    currentTokenType = ASTERISK;
+                    i = tokenStringIndex + 1;
                 }
                 break;
             case IN_FSPACE:

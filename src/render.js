@@ -10,6 +10,8 @@ import {
     HR,
     EM,
     STRONG,
+    PARAGRAPH,
+    MULTINL,
 } from './globals';
 
 // const t = parser.parse()
@@ -24,6 +26,7 @@ function render(t) {
             s = render_code(t);
             break;
         case NL:
+        case MULTINL:
             s = '\n';
             break;
         case TEXT:
@@ -38,8 +41,12 @@ function render(t) {
         case STRONG:
             s = render_strong(t);
             break;
+        case PARAGRAPH:
+            s = render_paragraph(t);
+            break;
         default:
             s = t.raw;
+            console.log('[Render] not rendered: ', t);
             break;
     }
     return s;
@@ -140,5 +147,15 @@ function render_em(t) {
 function render_strong(t) {
     return `<strong>${t.value}</strong>`;
 }
+
+function render_paragraph(t) {
+    let n = t.child[0];
+    let str = '';
+    while(n) {
+        str += render(n);
+        n = n.sibling;
+    }
+    return `<p>${str}</p>`;
+};
 
 export default comiple;

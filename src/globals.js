@@ -27,6 +27,10 @@ export const CODE = Symbol('code');
 export const HR = Symbol('hr');
 export const EM = Symbol('em');
 export const STRONG = Symbol('strong');
+export const PARAGRAPH = Symbol('paragraph');
+
+export const RAW = Symbol('raw');
+
 // special symbols
 // *
 const ASTERISK = Symbol('asterisk'); 
@@ -34,6 +38,7 @@ const ASTERISK = Symbol('asterisk');
 const UNDERSCORE = Symbol('underscore'); 
 // \n
 const NL = Symbol('newline');
+export const MULTINL = Symbol('multiple newline');
 const BACKTICK = Symbol('backtick');
 export const IN_OPEN_BRACKET = Symbol('in_open_bracket');
 export const LBRACKET = Symbol('left_bracket');
@@ -45,6 +50,7 @@ export const TAB = Symbol('tab');
 export const HASH = Symbol('hash_tag');
 export const BACKSLASH = Symbol('back_slash');
 export const CHAR = Symbol('char');
+export const HYPHEN = Symbol('hyphen');
 
 export {
     TRUE,

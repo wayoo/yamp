@@ -25,9 +25,9 @@ function traverse(t, preProc, postProc) {
 function nullProc() {}
 
 function preProcess(t) {
-    mergeTextSibling(t);
+    // mergeTextSibling(t);
     addLevel(t);
-    recoverInlineElement(t);
+    // recoverInlineElement(t);
 }
 
 function mergeTextSibling(t) {

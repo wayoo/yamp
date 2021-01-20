@@ -24,9 +24,18 @@ function run(str, isDebug) {
     return render(ast);
 }
 
-console.log("EXpect: ", '<p>__foo bar __</p>\n');
+const spec =        {
+    "markdown": "#5 bolt\n\n#hashtag\n",
+    "html": "<p>#5 bolt</p>\n<p>#hashtag</p>\n",
+    "example": 34,
+    "start_line": 802,
+    "end_line": 809,
+    "section": "ATX headings"
+  }
+
+console.log("EXpect: ", spec.html);
 // console.log(run("# foo *bar* \\*baz\\*\n"));
-console.log(run("__foo bar __\n", true));
+console.log(run(spec.markdown, true));
 
 
 
