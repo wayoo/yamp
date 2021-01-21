@@ -14,6 +14,7 @@ import {
     MULTINL,
     PUNCTUATION,
     INLINE,
+    ENDNL,
 } from './globals';
 
 // const t = parser.parse()
@@ -27,6 +28,7 @@ function render(t) {
         case CODE:
             s = render_code(t);
             break;
+        case ENDNL:
         case NL:
         case MULTINL:
             s = '\n';
@@ -51,7 +53,7 @@ function render(t) {
             break;
         case INLINE:
             s = render_inline(t);
-            break;
+            break;            
         default:
             s = t.raw;
             console.log('[Render] not rendered: ', t);

@@ -464,9 +464,15 @@ function underscore_flanking_stmt() {
         if (tokenString.length === 2) {
             t.type = STRONG;
         }
-        if (!p) {
-            t.child[0] = new TreeNode(TEXT, s);
-        } else {
+        if (openS.length > tokenString.length) {
+            // prepend exceed element
+            // q = new TreeNode(TEXT, openS.slice(0, - tokenString.length));
+            // q.sibling = t.child[0].sibling;
+            // t.child[0] = q;
+            q = t;
+            t = new TreeNode(INLINE);
+            t.child[0] = new TreeNode(TEXT, openS.slice(0, - tokenString.length))
+            t.child[0].sibling = q;
         }
         // match current token
         match(tokenType);
@@ -514,6 +520,10 @@ function flanking_stmt() {
             // t = new TreeNode(STRONG);
         }
         if (openS.length > tokenString.length) {
+            // prepend exceed element
+            // q = new TreeNode(TEXT, openS.slice(0, - tokenString.length));
+            // q.sibling = t.child[0].sibling;
+            // t.child[0] = q;
             p = t;
             t = new TreeNode(INLINE);
             t.child[0] = new TreeNode(TEXT, openS.slice(0, - tokenString.length))
