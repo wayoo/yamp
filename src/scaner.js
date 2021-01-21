@@ -26,6 +26,7 @@ import {
     ASTERISK,
     UNDERSCORE,
     NL,
+    ENDNL,
     BACKTICK,
     LBRACKET,
     RBRACKET,
@@ -283,6 +284,8 @@ function getToken() {
                     state = DONE;
                     if (i - tokenStringIndex > 2) {
                         currentTokenType = MULTINL;
+                    } else if (c === undefined){
+                        currentTokenType = ENDNL;
                     } else {
                         currentTokenType = NL;
                     }

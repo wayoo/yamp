@@ -47,6 +47,7 @@ import {
     RFLANK_UNDERSCORE,
     BFLANK_UNDERSCORE,
     PUNCTUATION,
+    ENDNL,
 } from './globals';
 
 class TreeNode {
@@ -167,7 +168,7 @@ function p_stmt_sequence() {
     t.child[0] = p_statement();
     let p = t.child[0], q, prev;
     // add to same paragraph
-    while(![HEADER, END, MULTINL].includes(tokenType)) {
+    while(![HEADER, END, MULTINL, ENDNL].includes(tokenType)) {
         q = p_statement();
         if (q !== undefined) {
             if (p === undefined) {
@@ -266,6 +267,9 @@ function statement() {
             break;
         case HR:
             t = simple_node(HR);
+            break;
+        case ENDNL:
+            t = raw_stmt();
             break;
         // case ASTERISK:
         //     t = em_stmt(ASTERISK, '*');
@@ -444,13 +448,16 @@ function underscore_flanking_stmt() {
         } else if (tokenType === LFLANK_UNDERSCORE) {
             q = underscore_flanking_stmt();
         } else {
+            console.log(tokenString);
             q = new TreeNode(TEXT, tokenString);
             tokenHelper.getAndCache();
         }
         p.sibling = q;
+        console.log(p);
         p = q;
     } while(tokenType !== RFLANK_UNDERSCORE
                 && tokenType !== MULTINL 
+                && tokenType !== ENDNL
                 && tokenType !== END)
     if (tokenType === BFLANK_UNDERSCORE || tokenType === RFLANK_UNDERSCORE) {
         // t = new TreeNode(EM);
@@ -461,11 +468,19 @@ function underscore_flanking_stmt() {
             t.child[0] = new TreeNode(TEXT, s);
         } else {
         }
-    } if (tokenType === END) {
-        t = new TreeNode(TEXT);
-        t.raw = openS + s;
+        // match current token
+        match(tokenType);
+    } else if (tokenType === END || tokenType === ENDNL) {
+        t.type = INLINE;
+        q = new TreeNode(TEXT, openS);
+        q.sibling = t.child[0];
+        t.child[0] = q;
+        // t = new TreeNode(TEXT);
+        // t.raw = openS + s;
     }
-    tokenHelper.getAndCache();
+    // if (tokenType !== END) {
+    //     tokenHelper.getAndCache();
+    // }
     return t;
 }
 
@@ -494,11 +509,13 @@ function flanking_stmt() {
             t.child[0] = new TreeNode(TEXT, openS.slice(0, - tokenString.length))
             t.child[0].sibling = p
         }
-    } if (tokenType === END) {
+        // match currentToken
+        match(tokenType);
+    } else if (tokenType === END) {
         t = new TreeNode(TEXT);
         t.raw = openS + s;
     }
-    tokenHelper.getAndCache();
+    // tokenHelper.getAndCache();
     return t;
 }
 

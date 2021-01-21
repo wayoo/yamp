@@ -40,6 +40,7 @@ const ASTERISK = Symbol('asterisk');
 const UNDERSCORE = Symbol('underscore'); 
 // \n
 const NL = Symbol('newline');
+export const ENDNL = Symbol('end newline');
 export const MULTINL = Symbol('multiple newline');
 const BACKTICK = Symbol('backtick');
 export const IN_OPEN_BRACKET = Symbol('in_open_bracket');
