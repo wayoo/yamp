@@ -16,6 +16,7 @@ import {
     TEXT,
     END,
     PARAGRAPH,
+    INLINE,
 
     SPACE,
     TAB,
@@ -39,11 +40,19 @@ import {
     STRONG,
     RAW,
     MULTINL,
+    BFLANK,
+    LFLANK,
+    RFLANK,
+    LFLANK_UNDERSCORE,
+    RFLANK_UNDERSCORE,
+    BFLANK_UNDERSCORE,
+    PUNCTUATION,
 } from './globals';
 
 class TreeNode {
-    constructor(type) {
+    constructor(type, raw) {
         this.type = type;
+        this.raw = raw;
         this.child = [];
         this.sibling;
     }
@@ -59,24 +68,21 @@ class TokenHelper {
         this.usedCacheTokenIndex = 0;
     }
     getAndCache() {
-        logger.log('====>:', tokenType, tokenString);
-        const token = scaner.getToken();
+        this.getToken();
+        const token = {tokenType, tokenString};
+
         this.cachedTokenList.push(token);
-        ({tokenType, tokenString} = token);
         return token;
     }
     useCachedTokens() {
         this.useCachedToken = true;
     }
     getToken() {
-        // if (this.useCachedToken) {
-        //     if (this.usedCacheTokenIndex < this.cachedTokenList ) {
+        const token = scaner.getToken();
 
-        //     }
-        // } 
-
-        ({ tokenType, tokenString } = scaner.getToken());
-        // logger.log('====>:', tokenType, tokenString);
+        ({ tokenType, tokenString } = token);
+        logger.log('====>:', tokenType, tokenString);
+        return token;
     }
     prevToken() {
         return this.cachedTokenList[this.cachedTokenList.length - 2];
@@ -175,7 +181,7 @@ function p_stmt_sequence() {
     }
     // remove last newline symbol from child to sibling
     if (tokenType === END) {
-        if (q.type === NL) {
+        if (q !== undefined && q.type === NL) {
             t.sibling = p;
             prev.sibling = undefined;
         }
@@ -200,16 +206,31 @@ function p_statement() {
         case SPACE:
             t = space_stmt();
             break;
-        case ASTERISK:
-            t = em_stmt(ASTERISK, '*');
+        case BFLANK:
+        case LFLANK:
+            t = flanking_stmt();            
             break;
-        case UNDERSCORE:
-            t = em_stmt(UNDERSCORE, '_');
+        case LFLANK_UNDERSCORE:
+            t = underscore_flanking_stmt();
             break;
+        case RFLANK:
+        case BFLANK_UNDERSCORE:
+        case RFLANK_UNDERSCORE:
+            t = raw_stmt();
+            break;
+        case PUNCTUATION:
+            t = punctucation_stmt();
+            break;
+        // case ASTERISK:
+        //     t = em_stmt(ASTERISK, '*');
+        //     break;
+        // case UNDERSCORE:
+        //     t = em_stmt(UNDERSCORE, '_');
+        //     break;
         default:
             // t = default_inline_stmt();
             logger.error("not handled ", tokenType, tokenString);
-            tokenHelper.getToken();
+            tokenHelper.getAndCache();
             break;
     }
     return t;
@@ -256,7 +277,7 @@ function statement() {
             console.log("default paragraph");
             t = p_stmt_sequence();
             break;
-            // tokenHelper.getToken();
+            // tokenHelper.getAndCache();
             // break;
     }
     return t;
@@ -315,13 +336,13 @@ function text_stmt() {
     logger.log(tokenType, tokenString);
     const t = new TreeNode(TEXT);
     let str  = '';
-    tokenHelper.clearCache();
+    // tokenHelper.clearCache();
     // at least load one more next token
     do {
         str += tokenString
-        tokenHelper.getToken();
+        tokenHelper.getAndCache();
     } while ([TEXT, UNDERSCORE].includes(tokenType))
-    console.log(t);
+
     t.raw = str;
     // match(NL);
     return t;
@@ -331,7 +352,7 @@ function raw_stmt() {
     const t = new TreeNode(RAW);
     let str = '';
     t.raw = tokenString;
-    tokenHelper.getToken();
+    tokenHelper.getAndCache();
     // match(NL);
     return t;
 }
@@ -405,143 +426,94 @@ function merge_hash_exp() {
     return t;
 }
 
-function em_stmt(tT, tS) {
-    matchWithCache(tT);
-    console.log('match', tT, tokenType);
-    let t, str = '';
-    if (tokenType === SPACE) {
-        t = new TreeNode(CHAR);
-        t.raw = tS;
-        return t;
-    } else if (tokenType === tT) {
-        t = double_em_stmt(tT, tS.repeat(2));
-        return t;
-    } else {
-        while(tokenType != NL && tokenType !== tT && tokenType !== END) {
-            str += tokenString;
+
+// // rewite em statement 
+// tT = ASTERISK
+// tS = '*'
+
+function underscore_flanking_stmt() {
+    let t = new TreeNode(EM);
+    let p = t.child[0] = new TreeNode(TEXT, '');
+    let q;
+    let openS = tokenString;
+    tokenHelper.getAndCache();
+    let s = '';
+    do {
+        if (tokenType === LFLANK || tokenType === BFLANK) {
+            q = flanking_stmt();
+        } else if (tokenType === LFLANK_UNDERSCORE) {
+            q = underscore_flanking_stmt();
+        } else {
+            q = new TreeNode(TEXT, tokenString);
             tokenHelper.getAndCache();
         }
-        if (tokenType === NL || tokenType === END) {
-            t = new TreeNode(TEXT);
-            t.raw = tS + str;
-            return t;
+        p.sibling = q;
+        p = q;
+    } while(tokenType !== RFLANK_UNDERSCORE
+                && tokenType !== MULTINL 
+                && tokenType !== END)
+    if (tokenType === BFLANK_UNDERSCORE || tokenType === RFLANK_UNDERSCORE) {
+        // t = new TreeNode(EM);
+        if (tokenString.length === 2) {
+            t.type = STRONG;
         }
-        if (tokenType === tT) {
-            const prevToken = tokenHelper.prevToken();
-            if (prevToken.tokenType === SPACE) {
-                t = new TreeNode(TEXT);
-                t.raw = tS + str;
-            } else {
-                match(tT);
-                t = new TreeNode(EM);
-                t.raw = tS + str + tS;
-                t.value = str;
-            }
-            return t;
+        if (!p) {
+            t.child[0] = new TreeNode(TEXT, s);
+        } else {
         }
-        t = new TreeNode('Unknow EM STMT');
-        t.raw = str;
-        return t;
-    }
-}
-
-/*
-function em_stmt() {
-    logger.log('em_stmt ', tokenType, tokenString);
-    matchWithCache(ASTERISK);
-    let t;
-    let str = '';
-
-    if (tokenType === SPACE) {
-        t = new TreeNode(CHAR);
-        t.raw = "*";
-        return t;
-    } else if (tokenType === ASTERISK) {
-        console.log("xxx")
-        // match strong em
-        t = double_em_stmt();
-        return t;
-        // matchWithCache(ASTERISK);
-        // if (tokenType === SPACE) {
-        //     t = new TreeNode(TEXT);
-        //     t.raw = "**";
-        // }
-        // return t;
-    } else {
-        // in the middle of em statement
-        do {
-            str += tokenString;
-            tokenHelper.getAndCache();
-        } while(tokenType !== NL && tokenType !== ASTERISK && tokenType !== END);
-        if (tokenType === NL) {
-            t = new TreeNode(TEXT);
-            t.raw = '*' + str;
-            return t;
-        }
-        if (tokenType === ASTERISK) {
-            const prevToken = tokenHelper.prevToken();
-            if (prevToken.tokenType === SPACE) {
-                t = new TreeNode(TEXT);
-                t.raw = '*' + str;
-            } else {
-                match(ASTERISK);
-                t = new TreeNode(EM);
-                t.raw = '*' + str + '*';
-                t.value = str;
-            }
-            return t;
-        }
-        t = new TreeNode('Unknow EM STMT');
-        t.raw = str;
-        return t;
-    }
-}
-*/
-
-function double_em_stmt(tT, tS) {
-    console.log("~~~~~~~#@")
-    let t, str = '';
-    matchWithCache(tT);
-    if (tokenType === SPACE || tokenType === tT) {
+    } if (tokenType === END) {
         t = new TreeNode(TEXT);
-        t.raw = tS;
-        return t;
-    } else {
-        while(tokenType !== NL && tokenType !== tT && tokenType !== END) {
-            str += tokenString;
-            tokenHelper.getAndCache();
-        } 
-        if (tokenType === NL || tokenType === END) {
-            t = new TreeNode(TEXT);
-            t.raw = tS + str;
-            return t;
-        }
-        if (tokenType === tT) {
-            const prevToken = tokenHelper.prevToken();
-            console.log(prevToken);
-            if (prevToken.tokenType === SPACE) {
-                t = new TreeNode(TEXT);
-                t.raw = tS + str;
-                console.error(t);
-                return t;
-            } else {
-                match(tT);
-                if (tokenType === tT) {
-                    match(tT);
-                    t = new TreeNode(STRONG);
-                    t.raw = tS + str + tS;
-                    t.value = str;
-                    return t;
-                } else {
-                    // TODO, put back
-                }
-            }
-        }
-        t = new TreeNode('Unknow STRONG STMT');
-        return t;
+        t.raw = openS + s;
     }
+    tokenHelper.getAndCache();
+    return t;
 }
 
+function flanking_stmt() {
+    let t, p;
+    let openS = tokenString;
+    tokenHelper.getAndCache();
+    let s = '';
+    do {
+        s += tokenString;
+        tokenHelper.getAndCache();
+    } while(tokenType !== BFLANK 
+                && tokenType !== RFLANK 
+                && tokenType !== MULTINL 
+                && tokenType !== END)
+    if (tokenType === BFLANK || tokenType === RFLANK) {
+        if (tokenString.length === 2) {
+            t = new TreeNode(STRONG);
+        } else {
+            t = new TreeNode(EM);
+        }
+        t.child[0] = new TreeNode(TEXT, s);
+        if (openS.length > tokenString.length) {
+            p = t;
+            t = new TreeNode(INLINE);
+            t.child[0] = new TreeNode(TEXT, openS.slice(0, - tokenString.length))
+            t.child[0].sibling = p
+        }
+    } if (tokenType === END) {
+        t = new TreeNode(TEXT);
+        t.raw = openS + s;
+    }
+    tokenHelper.getAndCache();
+    return t;
+}
+
+const escapeMap = {
+    '"': '&quot;',
+}
+function punctucation_stmt() {
+    const t = new TreeNode(PUNCTUATION);
+    t.raw = tokenString;
+    
+    t.value = escapeMap[tokenString] || tokenString;
+
+    match(PUNCTUATION);
+    return t;
+}
 
 function line_exp() {
     const t = new treeNode();

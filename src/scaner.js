@@ -10,6 +10,8 @@ import {
     IN_NL,
     IN_HR,
     IN_ESCAPE,
+    IN_FLANK_ASTERISK,
+    IN_FLANK_UNDERSCORE,
 
     DONE,
 
@@ -35,6 +37,13 @@ import {
     HR,
     HYPHEN,
     MULTINL,
+    PUNCTUATION,
+    BFLANK,
+    LFLANK,
+    RFLANK,
+    LFLANK_UNDERSCORE,
+    RFLANK_UNDERSCORE,
+    BFLANK_UNDERSCORE
 } from './globals'
 import logger from './logger';
 
@@ -97,22 +106,56 @@ function getNextChar() {
 function ungetNextChar() {
     i--;
 }
-
-const elementStartMark = [
-    undefined,
+// @see https://spec.commonmark.org/0.29/#ascii-punctuation-character
+// @see https://en.wikipedia.org/wiki/Basic_Latin_(Unicode_block)  ASCII punctuation and symbols
+const punctuationCharacter = [
+    '!',
+    '"',
     '#',
-    '`',
-    '*',
-    '_',
-    '-',
-    '[',
-    ']',
+    '$',
+    '%',
+    '&',
+    '\'',
     '(',
     ')',
-    '\n',
-    ' ',
+    '*',
+    '+',
+    ',',
+    '-',
+    '.',
+    '/',
+    ':',
+    ';',
+    '<',
+    '=',
+    '>',
+    '?',
+    '@',
+    '[',
     '\\',
+    ']',
+    '^',
+    '_',
+    '`',
+    '{',
+    '|',
+    '}',
+    '~',
 ];
+
+const whiteSpace = [
+    ' ',
+    '\t',
+    '\n',
+];
+
+function notWhitespace(c) {
+    return !whiteSpace.includes(c);
+}
+function isWhitespace(c) {
+    return whiteSpace.includes(c);
+}
+
 
 // return token once a time
 function getToken() {
@@ -180,7 +223,7 @@ function getToken() {
                 }else if (c == '\t') {
                     currentTokenType = TAB;
                     state = DONE;
-                } else if(!elementStartMark.includes(c)){     
+                } else if(!punctuationCharacter.includes(c) && c !== undefined){  
                     state = IN_TEXT;
                 } else {
                     // this input are all single character identifier
@@ -193,13 +236,17 @@ function getToken() {
                             currentTokenType = HASH;
                             break;
                         case '*':
-                            currentTokenType = ASTERISK;
+                            state = IN_FLANK_ASTERISK;
+                            tokenStringIndex = i - 1;
+                            // currentTokenType = ASTERISK;
                             break;
                         case '-':
                             currentTokenType = HYPHEN;
                             break;
                         case '_':
-                            currentTokenType = UNDERSCORE;
+                            state = IN_FLANK_UNDERSCORE;
+                            tokenStringIndex = i - 1;
+                            // currentTokenType = UNDERSCORE;
                             break;
                         case '`':
                             currentTokenType = BACKTICK;
@@ -220,7 +267,11 @@ function getToken() {
                             currentTokenType = NL;
                             break
                         default:
-                            logger.error('cant handle from START: ' + c);
+                            if (punctuationCharacter.includes(c)) {
+                                currentTokenType = PUNCTUATION;
+                            } else {
+                                logger.error('[Scanner]cant handle from START: ' + c);
+                            }
                     }
                 }
                 break;
@@ -229,7 +280,6 @@ function getToken() {
                 if (c === '\n') {
                     continue;
                 } else {
-                    console.log(i - tokenStringIndex);
                     state = DONE;
                     if (i - tokenStringIndex > 2) {
                         currentTokenType = MULTINL;
@@ -306,8 +356,8 @@ function getToken() {
                         }
                     }
                     // not hr , restore back to normal input 
-                    state = DONE;
-                    currentTokenType = ASTERISK;
+                    state = IN_FLANK_ASTERISK;
+                    // currentTokenType = IN_FLANK;
                     i = tokenStringIndex + 1;
                 }
                 break;
@@ -329,13 +379,29 @@ function getToken() {
                 }
                 break;
             case IN_TEXT:
-                if (elementStartMark.includes(c)) {
+                if (punctuationCharacter.includes(c) || c === undefined || c === '\n') {
                     // backup in the input
                     ungetNextChar();
                     save = FALSE;
                     state = DONE;
                     currentTokenType = TEXT;
                 }
+                break;
+            case IN_FLANK_UNDERSCORE:
+                if (c === '_') {
+                    continue;
+                }
+                check_flank_token('_', c);
+                state = DONE;
+                ungetNextChar();
+                break;
+            case IN_FLANK_ASTERISK:
+                if (c === '*') {
+                    continue;
+                }
+                check_flank_token('*', c);
+                state = DONE;
+                ungetNextChar();
                 break;
             case IN_ESCAPE:
                 currentTokenType = CHAR;
@@ -357,6 +423,43 @@ function getToken() {
         tokenType: currentTokenType,
         tokenString: tokenString,
     };
+}
+
+function check_flank_token(symbol, c) {
+    // For purposes of this definition, the beginning and the end of the line
+    // count as Unicode whitespace.
+    let isLeftFlank = false, 
+        isRightFlank = false;
+    // TODO
+    const prevC = str[tokenStringIndex - 1];
+    if (notWhitespace(c)) {
+        if (punctuationCharacter.includes(c)) {
+            if ((isWhitespace(prevC) || prevC === undefined) || punctuationCharacter.includes(prevC)) {
+                isLeftFlank = true;
+            }
+        } else if (c !== undefined){
+            // not followed by puctuation character
+            isLeftFlank = true;
+        }
+    }
+    if (notWhitespace(prevC)) {
+        if (punctuationCharacter.includes(prevC)) {
+            if ((isWhitespace(c) || c === undefined) || punctuationCharacter.includes(c)) {
+                isRightFlank = true;
+            }
+        } else if(prevC !== undefined){
+            isRightFlank = true;
+        }
+    }
+    if (isLeftFlank && isRightFlank) {
+        currentTokenType = symbol === '*' ? BFLANK : BFLANK_UNDERSCORE;
+    } else if (isLeftFlank) {
+        currentTokenType = symbol === '*' ? LFLANK : LFLANK_UNDERSCORE;
+    } else if (isRightFlank) {
+        currentTokenType = symbol === '*' ? RFLANK : RFLANK_UNDERSCORE;;
+    } else {
+        currentTokenType = TEXT;
+    }
 }
 
 export default {

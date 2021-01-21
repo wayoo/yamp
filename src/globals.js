@@ -13,7 +13,9 @@ export const IN_HR = Symbol('in_hr');
 const DONE = Symbol('done');
 export const IN_ASTERISK = Symbol('in_asterisk');
 export const IN_ASTERISK_DOUBLE = Symbol('in_asterisk_double');
-
+export const IN_FLANK = Symbol('in_flank');
+export const IN_FLANK_ASTERISK = Symbol('in_flanking_asterisk');
+export const IN_FLANK_UNDERSCORE = Symbol('in_flanking_underscore');
 
 
 // token
@@ -28,7 +30,7 @@ export const HR = Symbol('hr');
 export const EM = Symbol('em');
 export const STRONG = Symbol('strong');
 export const PARAGRAPH = Symbol('paragraph');
-
+export const INLINE = Symbol('inline');
 export const RAW = Symbol('raw');
 
 // special symbols
@@ -51,6 +53,13 @@ export const HASH = Symbol('hash_tag');
 export const BACKSLASH = Symbol('back_slash');
 export const CHAR = Symbol('char');
 export const HYPHEN = Symbol('hyphen');
+export const PUNCTUATION = Symbol('punctuation');
+export const BFLANK = Symbol('both left and right-flanking');
+export const LFLANK = Symbol('left flanking');
+export const RFLANK = Symbol('right flanking');
+export const BFLANK_UNDERSCORE = Symbol('both l&r flankigng underscore');
+export const LFLANK_UNDERSCORE = Symbol('left flanking underscore');
+export const RFLANK_UNDERSCORE = Symbol('right flanking underscore');
 
 export {
     TRUE,

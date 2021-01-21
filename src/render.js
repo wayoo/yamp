@@ -12,6 +12,8 @@ import {
     STRONG,
     PARAGRAPH,
     MULTINL,
+    PUNCTUATION,
+    INLINE,
 } from './globals';
 
 // const t = parser.parse()
@@ -43,6 +45,12 @@ function render(t) {
             break;
         case PARAGRAPH:
             s = render_paragraph(t);
+            break;
+        case PUNCTUATION:
+            s = render_escaped(t);
+            break;
+        case INLINE:
+            s = render_inline(t);
             break;
         default:
             s = t.raw;
@@ -136,16 +144,45 @@ function render_text(t) {
     }
 }
 
+function render_escaped(t) {
+    let str = t.value;
+    return str;
+}
+
 function render_hr() {
     return `<hr />`;
 }
 
 function render_em(t) {
-    return `<em>${t.value}</em>`;
+    let n = t.child[0];
+    let str = '';
+    while(n) {
+        str += render(n);
+        n = n.sibling;
+    }
+    return `<em>${str}</em>`;
+
+    // return `<em>${t.value}</em>`;
 }
 
 function render_strong(t) {
-    return `<strong>${t.value}</strong>`;
+    let n = t.child[0];
+    let str = '';
+    while(n) {
+        str += render(n);
+        n = n.sibling;
+    }
+    return `<strong>${str}</strong>`;
+}
+
+function render_inline(t) {
+    let n = t.child[0];
+    let str = '';
+    while(n) {
+        str += render(n);
+        n = n.sibling;
+    }
+    return str;
 }
 
 function render_paragraph(t) {

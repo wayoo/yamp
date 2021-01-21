@@ -25,13 +25,13 @@ function run(str, isDebug) {
 }
 
 const spec =        {
-    "markdown": "#5 bolt\n\n#hashtag\n",
-    "html": "<p>#5 bolt</p>\n<p>#hashtag</p>\n",
-    "example": 34,
-    "start_line": 802,
-    "end_line": 809,
-    "section": "ATX headings"
-  }
+    "markdown": "foo __\\___\n",
+    "html": "<p>foo <strong>_</strong></p>\n",
+    "example": 451,
+    "start_line": 7195,
+    "end_line": 7199,
+    "section": "Emphasis and strong emphasis"
+  };
 
 console.log("EXpect: ", spec.html);
 // console.log(run("# foo *bar* \\*baz\\*\n"));
