@@ -485,24 +485,34 @@ function underscore_flanking_stmt() {
 }
 
 function flanking_stmt() {
-    let t, p;
+    let t = new TreeNode(EM);
+    let p = t.child[0] = new TreeNode(TEXT, '');
+    let q;
     let openS = tokenString;
     tokenHelper.getAndCache();
     let s = '';
     do {
-        s += tokenString;
-        tokenHelper.getAndCache();
+        if (tokenType === LFLANK || tokenType === BFLANK) {
+            q = flanking_stmt();
+        } else if (tokenType === LFLANK_UNDERSCORE) {
+            q = underscore_flanking_stmt();
+        } else {
+            console.log(tokenString, 'OOOOO');
+            q = new TreeNode(TEXT, tokenString);
+            tokenHelper.getAndCache();
+        }
+        p.sibling = q;
+        p = q;
     } while(tokenType !== BFLANK 
                 && tokenType !== RFLANK 
                 && tokenType !== MULTINL 
+                && tokenType !== ENDNL
                 && tokenType !== END)
     if (tokenType === BFLANK || tokenType === RFLANK) {
         if (tokenString.length === 2) {
-            t = new TreeNode(STRONG);
-        } else {
-            t = new TreeNode(EM);
+            t.type = STRONG;
+            // t = new TreeNode(STRONG);
         }
-        t.child[0] = new TreeNode(TEXT, s);
         if (openS.length > tokenString.length) {
             p = t;
             t = new TreeNode(INLINE);
@@ -511,9 +521,13 @@ function flanking_stmt() {
         }
         // match currentToken
         match(tokenType);
-    } else if (tokenType === END) {
-        t = new TreeNode(TEXT);
-        t.raw = openS + s;
+    } else if (tokenType === END || tokenType === ENDNL) {
+        // t = new TreeNode(TEXT);
+        // t.raw = openS + s;
+        t.type = INLINE;
+        q = new TreeNode(TEXT, openS);
+        q.sibling = t.child[0];
+        t.child[0] = q;
     }
     // tokenHelper.getAndCache();
     return t;
