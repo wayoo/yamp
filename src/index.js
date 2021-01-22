@@ -24,12 +24,12 @@ function run(str, isDebug) {
     return render(ast);
 }
 
-const spec =    {
-    "markdown": "_foo__\n",
-    "html": "<p><em>foo</em>_</p>\n",
-    "example": 454,
-    "start_line": 7220,
-    "end_line": 7224,
+const spec =   {
+    "markdown": "*[bar*](/url)\n",
+    "html": "<p>*<a href=\"/url\">bar*</a></p>\n",
+    "example": 472,
+    "start_line": 7364,
+    "end_line": 7368,
     "section": "Emphasis and strong emphasis"
   };
 

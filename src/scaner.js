@@ -146,9 +146,11 @@ const punctuationCharacter = [
 
 const whiteSpace = [
     ' ',
+    ' ', // charcode 160
     '\t',
     '\n',
 ];
+console.error(whiteSpace.includes(' '))
 
 function notWhitespace(c) {
     return !whiteSpace.includes(c);
@@ -454,6 +456,7 @@ function check_flank_token(symbol, c) {
             isRightFlank = true;
         }
     }
+
     if (isLeftFlank && isRightFlank) {
         currentTokenType = symbol === '*' ? BFLANK : BFLANK_UNDERSCORE;
     } else if (isLeftFlank) {
@@ -463,6 +466,7 @@ function check_flank_token(symbol, c) {
     } else {
         currentTokenType = TEXT;
     }
+    console.log(currentTokenType)
 }
 
 export default {

@@ -430,7 +430,9 @@ function merge_hash_exp() {
     return t;
 }
 
+function link_stmt() {
 
+};
 // // rewite em statement 
 // tT = ASTERISK
 // tS = '*'
@@ -443,7 +445,7 @@ function underscore_flanking_stmt(inMiddle) {
     tokenHelper.getAndCache();
     let state = 'matching';
     while(openS.length && tokenType !== MULTINL && tokenType !== END && tokenType !== ENDNL) {
-        if (tokenType === LFLANK || tokenType === BFLANK) {
+        if (tokenType === LFLANK) {
             q = flanking_stmt(true);
         } else if (tokenType === LFLANK_UNDERSCORE) {
             q = underscore_flanking_stmt();
@@ -452,15 +454,17 @@ function underscore_flanking_stmt(inMiddle) {
             return t;
         } else if (tokenType === RFLANK_UNDERSCORE) {
             if (openS.length <= tokenString.length) {
-                if (openS.length === 1) { t.type = EM }
-                if (openS.length >= 2) { t.type = STRONG }
-                tokenType = TEXT
-                tokenString = tokenString.slice(openS.length);
+                t = buildEmphasisTree(t, openS.length);
+                if (openS.length < tokenString.length) {
+                    tokenType = RFLANK_UNDERSCORE;
+                    tokenString = tokenString.slice(openS.length);
+                } else {
+                    match(tokenType);
+                }
                 return t;
             } else if (openS.length > tokenString.length) {
                 // wrap current t as child of em, continue right-flanking matching
-                if (tokenString.length === 1) { t.type = EM }
-                if (tokenString.length >= 2) { t.type = STRONG }
+                t = buildEmphasisTree(t, tokenString.length);
                 q = new TreeNode(INLINE, t);
                 q.child[0] = t;
                 t = q;
@@ -494,27 +498,33 @@ function flanking_stmt(inMiddle) {
     let p = t.child[0] = new TreeNode(TEXT, '');
     let q;
     let openS = tokenString;
+    let openToken = tokenType;
     tokenHelper.getAndCache();
     let state = 'matching';
     while(openS.length && tokenType !== MULTINL && tokenType !== END && tokenType !== ENDNL) {
-        if (tokenType === LFLANK || tokenType === BFLANK) {
+        if (tokenType === LFLANK || (tokenType === BFLANK && openToken !== BFLANK)) {
+            console.log("second matching")
             q = flanking_stmt();
         } else if (tokenType === LFLANK_UNDERSCORE) {
             q = underscore_flanking_stmt(true);
         } else if (inMiddle && tokenType === RFLANK_UNDERSCORE){
             t.child[0].raw = openS;
             return t;
-        } else if (tokenType === RFLANK) {
+        } else if (tokenType === RFLANK || tokenType === BFLANK) {
             if (openS.length <= tokenString.length) {
-                if (openS.length === 1) { t.type = EM }
-                if (openS.length >= 2) { t.type = STRONG }
-                tokenType = TEXT
-                tokenString = tokenString.slice(openS.length);
+                t = buildEmphasisTree(t, openS.length);
+                // if (openS.length === 1) { t.type = EM }
+                // if (openS.length >= 2) { t.type = STRONG }
+                if (openS.length < tokenString.length) {
+                    tokenType = RFLANK;
+                    tokenString = tokenString.slice(openS.length);
+                } else {
+                    match(tokenType);
+                }
                 return t;
             } else if (openS.length > tokenString.length) {
                 // wrap current t as child of em, continue right-flanking matching
-                if (tokenString.length === 1) { t.type = EM }
-                if (tokenString.length >= 2) { t.type = STRONG }
+                t = buildEmphasisTree(t, tokenString.length);
                 q = new TreeNode(INLINE, t);
                 q.child[0] = t;
                 t = q;
@@ -545,9 +555,30 @@ function flanking_stmt(inMiddle) {
 
 // t root element 
 // p t's last child
-function arrangeFranking(startS, endS, t, p) {
-    if (startS.length > endS.length) {
-        // left 
+function buildEmphasisTree(t, num) {
+    let p, q;
+    if (num === 1) {
+        t.type = EM;
+        return t;
+    } else if (num === 2) {
+        t.type = STRONG;
+        return t;
+    } else {
+        t.type = STRONG;
+        num -= 2;
+        p = t;
+        while(num >= 2) {
+            q = new TreeNode(STRONG);
+            q.child[0] = p;
+            p = q;
+            num -=2;
+        }
+        if (num === 1) {
+            q = new TreeNode(EM);
+            q.child[0] = p;
+            p = q;
+        }
+        return p;
     }
 }
 
