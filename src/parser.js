@@ -98,6 +98,7 @@ class TokenHelper {
                 tokenString = '';
                 this.tokenPool = [token, ntoken];
             } else {
+                ({ tokenType, tokenString } = token);
                 this.tokenPool = [ntoken];
             }
         } else if (token.tokenType === END || token.tokenString === ENDNL) {

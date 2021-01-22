@@ -25,11 +25,11 @@ function run(str, isDebug) {
 }
 
 const spec =    {
-    "markdown": "**foo bar**\n",
-    "html": "<p><strong>foo bar</strong></p>\n",
-    "example": 377,
-    "start_line": 6549,
-    "end_line": 6553,
+    "markdown": "*foo\nbar*\n",
+    "html": "<p><em>foo\nbar</em></p>\n",
+    "example": 404,
+    "start_line": 6805,
+    "end_line": 6811,
     "section": "Emphasis and strong emphasis"
   };
 
