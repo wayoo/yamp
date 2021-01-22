@@ -16,7 +16,7 @@ export const IN_ASTERISK_DOUBLE = Symbol('in_asterisk_double');
 export const IN_FLANK = Symbol('in_flank');
 export const IN_FLANK_ASTERISK = Symbol('in_flanking_asterisk');
 export const IN_FLANK_UNDERSCORE = Symbol('in_flanking_underscore');
-
+export const IN_LIST = Symbol('in_list');
 
 // token
 const HEADER = Symbol('header');
@@ -32,7 +32,8 @@ export const STRONG = Symbol('strong');
 export const PARAGRAPH = Symbol('paragraph');
 export const INLINE = Symbol('inline');
 export const RAW = Symbol('raw');
-
+export const LIST = Symbol('list');
+export const ENDINLINE = Symbol('end_inline_element');
 // special symbols
 // *
 const ASTERISK = Symbol('asterisk'); 

@@ -103,6 +103,7 @@ function render_header(t) {
             // "### " remove trail space
             nodes.pop();
         } else {
+            console.log("JASS   ", HASH, isTrailHash);
             if (nodes[i].type === HASH && isTrailHash) {           
                 if (i === 0 ) {
                     nodes.pop(); 

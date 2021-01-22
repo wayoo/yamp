@@ -48,6 +48,7 @@ import {
     BFLANK_UNDERSCORE,
     PUNCTUATION,
     ENDNL,
+    ENDINLINE,
 } from './globals';
 
 class TreeNode {
@@ -64,6 +65,8 @@ let tokenType, tokenString, textCache = [];
 
 class TokenHelper {
     constructor() {
+        this.i = 0;
+        this.tokenPool = [];
         this.cachedTokenList = [];
         this.useCachedToken = false;
         this.usedCacheTokenIndex = 0;
@@ -78,11 +81,43 @@ class TokenHelper {
     useCachedTokens() {
         this.useCachedToken = true;
     }
-    getToken() {
-        const token = scaner.getToken();
+    // return inline token, else replaced with ENDINLINE type
+    getInlineToken() {
+        // this.i++
+        // if (this.i > 30) {
+            // xx
+        // }
 
+        const token = this.getToken();
+        if (token.tokenType === NL) {
+            // check next 2th token for this NL
+            console.log("!!!check")
+            const ntoken = this.getToken();
+            if (isBlock(ntoken.tokenType)) {
+                tokenType = ENDINLINE;
+                tokenString = '';
+                this.tokenPool = [token, ntoken];
+            } else {
+                this.tokenPool = [ntoken];
+            }
+        } else if (token.tokenType === END || token.tokenString === ENDNL) {
+            tokenType = ENDINLINE;
+            tokenString = '';
+            this.tokenPool = [token];
+        }
+    }
+    getToken() {
+        let token;
+        if (this.tokenPool.length) {
+            token = this.tokenPool.shift()
+            console.error('====> Renuse Token:', 
+                    token.tokenType, JSON.stringify(token.tokenString))
+        } else {
+            token = scaner.getToken();
+            logger.log('====>:', token.tokenType, 
+                                JSON.stringify(token.tokenString));
+        }
         ({ tokenType, tokenString } = token);
-        logger.log('====>:', tokenType, tokenString);
         return token;
     }
     prevToken() {
@@ -110,7 +145,7 @@ const tokenHelper = new TokenHelper();
 
 function match(expectToken) {
     if (tokenType == expectToken) {
-        ({ tokenType, tokenString } = scaner.getToken());
+        ({ tokenType, tokenString } = tokenHelper.getToken());
     } else {
         logger.error("[match] unexpected token -> ");
         logger.log(tokenType, tokenString);
@@ -123,6 +158,10 @@ function matchWithCache(expectToken) {
         logger.error("[match] unexpected token -> ");
         logger.log(tokenType, tokenString);
     }
+}
+
+function isBlock(token) {
+    return [HR].includes(token);
 }
 
 
@@ -149,7 +188,7 @@ function stmt_sequence() {
 function inline_stmt_sequence() {
     let t = inline_statement();
     let p = t;
-    while (tokenType != NL && tokenType != END) {
+    while (tokenType != NL && tokenType != END && tokenType !== ENDNL) {
         let q = inline_statement();
         if (q !== undefined) {
             if (t === undefined) {
@@ -168,7 +207,7 @@ function p_stmt_sequence() {
     t.child[0] = p_statement();
     let p = t.child[0], q, prev;
     // add to same paragraph
-    while(![HEADER, END, MULTINL, ENDNL].includes(tokenType)) {
+    while(![HEADER, END, MULTINL, ENDNL, HR].includes(tokenType)) {
         q = p_statement();
         if (q !== undefined) {
             if (p === undefined) {
@@ -181,7 +220,7 @@ function p_stmt_sequence() {
         }
     }
     // remove last newline symbol from child to sibling
-    if (tokenType === END) {
+    if (tokenType === END || tokenType === HR) {
         if (q !== undefined && q.type === NL) {
             t.sibling = p;
             prev.sibling = undefined;
@@ -306,11 +345,20 @@ function inline_statement() {
         case SPACE:
             t = space_stmt();
             break;
-        case ASTERISK:
-            t = em_stmt(ASTERISK, '*');
+        case BFLANK:
+        case LFLANK:
+            t = flanking_stmt();            
             break;
-        case UNDERSCORE:
-            t = em_stmt(UNDERSCORE, '_');
+        case LFLANK_UNDERSCORE:
+            t = underscore_flanking_stmt();
+            break;
+        case RFLANK:
+        case BFLANK_UNDERSCORE:
+        case RFLANK_UNDERSCORE:
+            t = raw_stmt();
+            break;
+        case PUNCTUATION:
+            t = punctucation_stmt();
             break;
         default:
             t = default_inline_stmt();
@@ -442,9 +490,10 @@ function underscore_flanking_stmt(inMiddle) {
     let p = t.child[0] = new TreeNode(TEXT, '');
     let q;
     let openS = tokenString;
-    tokenHelper.getAndCache();
-    let state = 'matching';
-    while(openS.length && tokenType !== MULTINL && tokenType !== END && tokenType !== ENDNL) {
+    // tokenHelper.getAndCache();
+    tokenHelper.getInlineToken();
+    // while(openS.length && tokenType !== MULTINL && tokenType !== END && tokenType !== ENDNL) {
+    while(openS.length && tokenType !== ENDINLINE && tokenType !== END && tokenType !== ENDNL) {
         if (tokenType === LFLANK) {
             q = flanking_stmt(true);
         } else if (tokenType === LFLANK_UNDERSCORE) {
@@ -499,9 +548,8 @@ function flanking_stmt(inMiddle) {
     let q;
     let openS = tokenString;
     let openToken = tokenType;
-    tokenHelper.getAndCache();
-    let state = 'matching';
-    while(openS.length && tokenType !== MULTINL && tokenType !== END && tokenType !== ENDNL) {
+    tokenHelper.getInlineToken();
+    while(openS.length && tokenType !== ENDINLINE) {
         if (tokenType === LFLANK || (tokenType === BFLANK && openToken !== BFLANK)) {
             console.log("second matching")
             q = flanking_stmt();
@@ -520,6 +568,7 @@ function flanking_stmt(inMiddle) {
                     tokenString = tokenString.slice(openS.length);
                 } else {
                     match(tokenType);
+                    // tokenHelper.getInlineToken()
                 }
                 return t;
             } else if (openS.length > tokenString.length) {
@@ -530,24 +579,28 @@ function flanking_stmt(inMiddle) {
                 t = q;
                 p = t.child[0];
                 openS = openS.slice(0, - tokenString.length);
-                match(tokenType)
+                // tokenHelper(tokenType)
+                tokenHelper.getInlineToken()
                 continue;
             }
         } else {
+            console.log('not !!!', tokenType);
             q = new TreeNode(TEXT, tokenString);
-            tokenHelper.getAndCache();
+            tokenHelper.getInlineToken();
         }
         p.sibling = q;
         p = q;
     }
 
-    if (tokenType === END || tokenType === ENDNL) {
+    if (tokenType === ENDINLINE) {
         // t = new TreeNode(TEXT);
         // t.raw = openS + s;
         t.type = INLINE;
         q = new TreeNode(TEXT, openS);
         q.sibling = t.child[0];
         t.child[0] = q;
+        match(ENDINLINE);
+        // tokenHelper.getInlineToken();
     }
     return t;
     // tokenHelper.ge
@@ -685,7 +738,6 @@ function parse() {
     logger.log('=== TTTTTTT ======= :::::')
     printTree(rootT)
 
-    logger.log(rootT);
     return rootT;
 }
 

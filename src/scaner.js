@@ -44,7 +44,9 @@ import {
     RFLANK,
     LFLANK_UNDERSCORE,
     RFLANK_UNDERSCORE,
-    BFLANK_UNDERSCORE
+    BFLANK_UNDERSCORE,
+    IN_LIST,
+    LIST,
 } from './globals'
 import logger from './logger';
 
@@ -344,27 +346,67 @@ function getToken() {
                 }
                 break;
             case IN_HR:
-                if (c == '*' && ((i-tokenStringIndex) < 4)) {
+                if (c === '*' || c === ' ') {
+                    continue;
+                }
+                let s = str.slice(tokenStringIndex, i).replace(/\s/g, '');
+                if (s.length >= 3 && c === '\n') {
+                    ungetNextChar();
+                    currentTokenType = HR;
+                    state = DONE;
                     continue;
                 } else {
-                    if (i - tokenStringIndex === 5) {
-                    }
-                    if ((i - tokenStringIndex) >= 4) {
-                        if (c == ' ' || c == '*') {
-                            continue;
-                        } else if (c == '\n') {
-                            ungetNextChar();
-                            currentTokenType = HR;
-                            state = DONE;
-                            // !!! very important
-                            continue;
-                        }
-                    }
-                    // not hr , restore back to normal input 
-                    state = IN_FLANK_ASTERISK;
-                    // currentTokenType = IN_FLANK;
+                    state = IN_LIST;
                     i = tokenStringIndex + 1;
                 }
+                // if (c == '*' && ((i-tokenStringIndex) < 4)) {
+                //     continue;
+                // } else {
+                //     if ((i - tokenStringIndex) >= 4) {
+                //         if (c == ' ' || c == '*') {
+                //             continue;
+                //         } else if (c == '\n') {
+                //             ungetNextChar();
+                //             currentTokenType = HR;
+                //             state = DONE;
+                //             // !!! very important
+                //             continue;
+                //         }
+                //     }
+                //     // not hr , restore back to normal input 
+                //     state = IN_FLANK_ASTERISK;
+                //     // currentTokenType = IN_FLANK;
+                //     i = tokenStringIndex + 1;
+                // }
+                break;
+            case IN_LIST:
+                if (c !== ' ') {
+                    state = IN_FLANK_ASTERISK;
+                    i = tokenStringIndex + 1;
+                } else {
+                    // match max space
+                    while(getNextChar().c === ' ') {
+                    }
+                    ungetNextChar();
+                    state = DONE;
+                    currentTokenType = LIST;
+                }
+                // console.log(tokenStringIndex, c);
+                // if (c == ' ') {
+                //     continue
+                // } else {
+                //     if (i - tokenStringIndex <= 5) {
+                //         state = DONE;
+                //         currentTokenType = LIST;
+                //         ungetNextChar();
+                //         // if ( c == '*') {
+                //             // nextState = 
+                //         // }
+                //         continue;
+                //     }
+                //     state = IN_FLANK_ASTERISK
+                //     i = tokenStringIndex + 1;
+                // }
                 break;
             case IN_FSPACE:
                 if (c == ' ' && ((i - tokenStringIndex) < 5)) {
@@ -378,13 +420,24 @@ function getToken() {
                         // preFSpace = false;
                         state = IN_HEADER;
                         tokenStringIndex = i - 1;
+                    } else if(c === '*'){
+                        // ignore line start space
+                        state = IN_HR
+                        tokenStringIndex = i - 1;
+                        // currentTokenType = SPACE
+                        // console.log('space');
+                        ungetNextChar();
+                        // nextState = IN_HR;
                     } else {
                         state = IN_TEXT;
                     }
                 }
                 break;
             case IN_TEXT:
-                if (punctuationCharacter.includes(c) || c === undefined || c === '\n') {
+                if (punctuationCharacter.includes(c) 
+                    || c === ' '
+                    || c === undefined 
+                    || c === '\n') {
                     // backup in the input
                     ungetNextChar();
                     save = FALSE;
@@ -466,7 +519,6 @@ function check_flank_token(symbol, c) {
     } else {
         currentTokenType = TEXT;
     }
-    console.log(currentTokenType)
 }
 
 export default {
