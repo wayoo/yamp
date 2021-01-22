@@ -435,7 +435,7 @@ function merge_hash_exp() {
 // tT = ASTERISK
 // tS = '*'
 
-function underscore_flanking_stmt() {
+function underscore_flanking_stmt(inMiddle) {
     let t = new TreeNode(EM);
     let p = t.child[0] = new TreeNode(TEXT, '');
     let q;
@@ -444,9 +444,13 @@ function underscore_flanking_stmt() {
     let s = '';
     do {
         if (tokenType === LFLANK || tokenType === BFLANK) {
-            q = flanking_stmt();
+            q = flanking_stmt(true);
         } else if (tokenType === LFLANK_UNDERSCORE) {
             q = underscore_flanking_stmt();
+        } else if(inMiddle && tokenType === RFLANK){
+            t.child[0].raw = openS;
+            t.type = INLINE;
+            return t;
         } else {
             console.log(tokenString);
             q = new TreeNode(TEXT, tokenString);
@@ -491,6 +495,64 @@ function underscore_flanking_stmt() {
 }
 
 function flanking_stmt() {
+    let t = new TreeNode(INLINE);
+    let p = t.child[0] = new TreeNode(TEXT, '');
+    let q;
+    let openS = tokenString;
+    tokenHelper.getAndCache();
+    let state = 'matching';
+    while(openS.length && tokenType !== MULTINL && tokenType !== END && tokenType !== ENDNL) {
+        if (tokenType === LFLANK || tokenType === BFLANK) {
+            q = flanking_stmt();
+        } else if (tokenType === LFLANK_UNDERSCORE) {
+            q = underscore_flanking_stmt(true);
+        } else if (tokenType === RFLANK) {
+            if (openS.length <= tokenString.length) {
+                if (openS.length === 1) { t.type = EM }
+                if (openS.length >= 2) { t.type = STRONG }
+                match(tokenType);
+                return t;
+            } else if (openS.length > tokenString.length) {
+                // wrap current t as child of em, continue right-flanking matching
+                if (tokenString.length === 1) { t.type = EM }
+                if (tokenString.length >= 2) { t.type = STRONG }
+                q = new TreeNode(INLINE, t);
+                q.child[0] = t;
+                t = q;
+                p = t.child[0];
+                openS = openS.slice(0, - tokenString.length);
+                match(tokenType)
+                continue;
+            }
+        } else {
+            q = new TreeNode(TEXT, tokenString);
+            tokenHelper.getAndCache();
+        }
+        p.sibling = q;
+        p = q;
+    }
+
+    if (tokenType === END || tokenType === ENDNL) {
+        // t = new TreeNode(TEXT);
+        // t.raw = openS + s;
+        t.type = INLINE;
+        q = new TreeNode(TEXT, openS);
+        q.sibling = t.child[0];
+        t.child[0] = q;
+    }
+    return t;
+    // tokenHelper.ge
+}
+
+// t root element 
+// p t's last child
+function arrangeFranking(startS, endS, t, p) {
+    if (startS.length > endS.length) {
+        // left 
+    }
+}
+
+function _flanking_stmt(inMiddle) {
     let t = new TreeNode(EM);
     let p = t.child[0] = new TreeNode(TEXT, '');
     let q;
@@ -501,7 +563,7 @@ function flanking_stmt() {
         if (tokenType === LFLANK || tokenType === BFLANK) {
             q = flanking_stmt();
         } else if (tokenType === LFLANK_UNDERSCORE) {
-            q = underscore_flanking_stmt();
+            q = underscore_flanking_stmt(true);
         } else {
             console.log(tokenString, 'OOOOO');
             q = new TreeNode(TEXT, tokenString);

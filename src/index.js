@@ -24,14 +24,13 @@ function run(str, isDebug) {
     return render(ast);
 }
 
-const spec =        {
-    "markdown": "**foo **bar baz**\n",
-    "html": "<p>**foo <strong>bar baz</strong></p>\n",
-    "example": 470,
-    "start_line": 7348,
-    "end_line": 7352,
-    "section": "Emphasis and strong emphasis",
-    "shouldFail": true
+const spec =    {
+    "markdown": "_foo__\n",
+    "html": "<p><em>foo</em>_</p>\n",
+    "example": 454,
+    "start_line": 7220,
+    "end_line": 7224,
+    "section": "Emphasis and strong emphasis"
   };
 
 console.log(`EXpect ${spec.shouldFail ? 'not' : ''}: `, JSON.stringify(spec.html));
