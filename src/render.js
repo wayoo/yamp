@@ -15,6 +15,7 @@ import {
     PUNCTUATION,
     INLINE,
     ENDNL,
+    CODEINLINE,
 } from './globals';
 
 // const t = parser.parse()
@@ -26,6 +27,7 @@ function render(t) {
             s = render_header(t);
             break;
         case CODE:
+        case CODEINLINE:
             s = render_code(t);
             break;
         case ENDNL:
@@ -56,7 +58,7 @@ function render(t) {
             break;            
         default:
             s = t.raw;
-            console.log('[Render] not rendered: ', t);
+            // console.log('[Render] not rendered: ', t);
             break;
     }
     return s;
@@ -132,7 +134,11 @@ function render_header(t) {
     return `<h${t.num}>${str}</h${t.num}>`;
 }
 function render_code(t) {
-    return `<pre><code>${t.value}</code></pre>`
+    if (t.type === CODE) {
+        return `<pre><code>${t.value}</code></pre>`;
+    } else {
+        return `<code>${t.value}</code>`;
+    }
 }
 
 function render_text(t) {

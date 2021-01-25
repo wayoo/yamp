@@ -49,6 +49,7 @@ import {
     PUNCTUATION,
     ENDNL,
     ENDINLINE,
+    CODEINLINE,
 } from './globals';
 
 class TreeNode {
@@ -308,6 +309,9 @@ function inline_statement() {
     // logger.log('inline state mentl', tokenString);
     let t;
     switch(tokenType) {
+        case BACKTICK:
+            t = inline_code_stmt();
+            break;
         case HASH:
             if (tokenString === '#') {
                 t = merge_hash_exp();
@@ -340,6 +344,19 @@ function inline_statement() {
     return t;
 }
 
+function inline_inner_franking_stmt() {
+    let t;
+    switch(tokenType) {
+        case BACKTICK:
+            t = inline_code_stmt();
+            break;
+        default:
+            t = default_inline_stmt();
+            break;
+    }
+    return t;
+}
+
 function newline_stmt() {
     logger.log("new line ....")
     const t = new TreeNode(NL);
@@ -354,6 +371,37 @@ function multi_newline_stmt() {
     t.raw = tokenString;
     match(MULTINL);
     
+    return t;
+}
+
+// return inline code element or 
+// '`' text element
+function inline_code_stmt() {
+    let t = new TreeNode();
+    // match(BACKTICK);
+    tokenHelper.getInlineToken();
+    const tokenList = [];
+    while (tokenType !== ENDINLINE && tokenType !== END && tokenType !== ENDNL && tokenType !== BACKTICK) {
+        tokenList.push({
+            tokenType, 
+            tokenString
+        });
+        tokenHelper.getInlineToken();
+    }
+    if (tokenType === BACKTICK) {
+        t.type = CODEINLINE;
+        t.value = tokenList.map(i => i.tokenString).join('');
+        t.raw = '`' + t.value + '`';
+        match(BACKTICK);
+    } else {
+        t.type = TEXT;
+        t.raw = '`';
+        tokenList.push({tokenType, tokenString});
+        tokenHelper.tokenPool = tokenList.concat(tokenHelper.tokenPool);
+        if (tokenType === ENDINLINE) {
+            match(ENDINLINE);
+        }
+    }
     return t;
 }
 
@@ -496,8 +544,9 @@ function underscore_flanking_stmt(inMiddle) {
                 continue;
             }
         } else {
-            q = new TreeNode(TEXT, tokenString);
-            tokenHelper.getAndCache();
+            q = inline_inner_franking_stmt();
+            // q = new TreeNode(TEXT, tokenString);
+            // tokenHelper.getAndCache();
         }
         p.sibling = q;
         p = q;
@@ -522,13 +571,16 @@ function flanking_stmt(inMiddle) {
     let openS = tokenString;
     let openToken = tokenType;
     tokenHelper.getInlineToken();
-    while(openS.length && tokenType !== ENDINLINE) {
-        if (tokenType === LFLANK || (tokenType === BFLANK && openToken !== BFLANK)) {
+    while(openS.length && tokenType !== ENDINLINE && tokenType !== END) {
+        if (tokenType === LFLANK || (tokenType === BFLANK)) {
             console.log("second matching")
             q = flanking_stmt();
+        // } else if (tokenType === BFLANK){ 
+            // first treat as next LFLANK, other wise return to LFLANK
         } else if (tokenType === LFLANK_UNDERSCORE) {
             q = underscore_flanking_stmt(true);
         } else if (inMiddle && tokenType === RFLANK_UNDERSCORE){
+            console.log("xxxx");
             t.child[0].raw = openS;
             return t;
         } else if (tokenType === RFLANK || tokenType === BFLANK) {
@@ -545,6 +597,7 @@ function flanking_stmt(inMiddle) {
                 }
                 return t;
             } else if (openS.length > tokenString.length) {
+                console.log("X")
                 // wrap current t as child of em, continue right-flanking matching
                 t = buildEmphasisTree(t, tokenString.length);
                 q = new TreeNode(INLINE, t);
@@ -552,17 +605,26 @@ function flanking_stmt(inMiddle) {
                 t = q;
                 p = t.child[0];
                 openS = openS.slice(0, - tokenString.length);
+                console.log(openS);
                 // tokenHelper(tokenType)
                 tokenHelper.getInlineToken()
                 continue;
             }
         } else {
-            console.log('not !!!', tokenType);
-            q = new TreeNode(TEXT, tokenString);
-            tokenHelper.getInlineToken();
+            q = inline_inner_franking_stmt();
+            // q = new TreeNode(TEXT, tokenString);
+            // tokenHelper.getAndCache();
+            // console.log('not !!!', tokenType);
+            // q = new TreeNode(TEXT, tokenString);
+            // tokenHelper.getInlineToken();
         }
         p.sibling = q;
         p = q;
+    }
+    if (openS.length > 0) {
+        q = new TreeNode(TEXT, openS);
+        q.sibling = t.child[0];
+        t.child[0] = q;
     }
 
     if (tokenType === ENDINLINE) {

@@ -26,6 +26,7 @@ const FSPACE = Symbol('four_space');
 
 // HTML Elemet
 export const CODE = Symbol('code');
+export const CODEINLINE = Symbol('code_inline');
 export const HR = Symbol('hr');
 export const EM = Symbol('em');
 export const STRONG = Symbol('strong');
