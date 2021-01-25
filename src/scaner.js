@@ -61,21 +61,8 @@ const HTMLElement = {
 }
 
 
-// function getNextChar() {
-
-// }
-
-// let str = "###### 1 ############# 1212 \nsdasd\n--[1212](asasas) 阿萨说 阿萨说";
-// let str = "    # foo\n";
-// let str = "    # foo\n";
 let str = "";
-// let str = "####### foo\n";
-// let str = "####### foo\n";
-// logger.log('Expect: ', '<p>####### foo</p>\n');
-// let str = " ### foo\n  ## foo\n   # foo\n";
-// let str = "#                  foo                     \n";
 let i = 0;
-// let preFSpace = true;
 let tokenStringIndex = 0;
 let currentTokenType;
 let nextTokenType = null;
@@ -87,21 +74,12 @@ let isBlockToken = true;
 function load(s) {
     str = s;
     i = 0;
-    // preFSpace = true;
     tokenStringIndex = 0;
 }
-// let str = "--";
-// let startI = 0;
 
-// function load(s) {
-//     str = s;
-//     i = 0;
-//     startI = 0;
-// }
 
 function getNextChar() {
     return {
-        // i: i,
         c: str[i++],
     };
 }
@@ -359,25 +337,6 @@ function getToken() {
                     state = IN_LIST;
                     i = tokenStringIndex + 1;
                 }
-                // if (c == '*' && ((i-tokenStringIndex) < 4)) {
-                //     continue;
-                // } else {
-                //     if ((i - tokenStringIndex) >= 4) {
-                //         if (c == ' ' || c == '*') {
-                //             continue;
-                //         } else if (c == '\n') {
-                //             ungetNextChar();
-                //             currentTokenType = HR;
-                //             state = DONE;
-                //             // !!! very important
-                //             continue;
-                //         }
-                //     }
-                //     // not hr , restore back to normal input 
-                //     state = IN_FLANK_ASTERISK;
-                //     // currentTokenType = IN_FLANK;
-                //     i = tokenStringIndex + 1;
-                // }
                 break;
             case IN_LIST:
                 if (c !== ' ') {
@@ -391,22 +350,6 @@ function getToken() {
                     state = DONE;
                     currentTokenType = LIST;
                 }
-                // console.log(tokenStringIndex, c);
-                // if (c == ' ') {
-                //     continue
-                // } else {
-                //     if (i - tokenStringIndex <= 5) {
-                //         state = DONE;
-                //         currentTokenType = LIST;
-                //         ungetNextChar();
-                //         // if ( c == '*') {
-                //             // nextState = 
-                //         // }
-                //         continue;
-                //     }
-                //     state = IN_FLANK_ASTERISK
-                //     i = tokenStringIndex + 1;
-                // }
                 break;
             case IN_FSPACE:
                 if (c == ' ' && ((i - tokenStringIndex) < 5)) {

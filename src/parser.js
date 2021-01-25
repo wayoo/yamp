@@ -129,14 +129,12 @@ class TokenHelper {
     }
     dump() {
         const str = this.cachedTokenList.map((item) => item.tokenString).join('');
-        // const str = this.cachedTokenList.join('');
         this.cachedTokenList = [];
         return str;
     }
     dumpWithoutCurrent() {
         this.cachedTokenList.pop();
         const str = this.cachedTokenList.map((item) => item.tokenString).join('');
-        // const str = this.cachedTokenList.join('');
         this.cachedTokenList = [];
         return str;
     }
@@ -262,14 +260,7 @@ function p_statement() {
         case PUNCTUATION:
             t = punctucation_stmt();
             break;
-        // case ASTERISK:
-        //     t = em_stmt(ASTERISK, '*');
-        //     break;
-        // case UNDERSCORE:
-        //     t = em_stmt(UNDERSCORE, '_');
-        //     break;
         default:
-            // t = default_inline_stmt();
             logger.error("not handled ", tokenType, tokenString);
             tokenHelper.getAndCache();
             break;
@@ -291,17 +282,6 @@ function statement() {
         case MULTINL:
             t = multi_newline_stmt();
             break;
-        // case TEXT:
-        //     t =  text_stmt();
-        //     break;
-        // case CHAR:
-        // case HYPHEN:
-        // case HASH:
-        //     t = raw_stmt();
-        //     break;
-        // case SPACE:
-        //     t = space_stmt();
-        //     break;
         case FSPACE:
             t = four_space_stmt();
             break;
@@ -311,18 +291,10 @@ function statement() {
         case ENDNL:
             t = raw_stmt();
             break;
-        // case ASTERISK:
-        //     t = em_stmt(ASTERISK, '*');
-        //     break;
-        // case UNDERSCORE:
-        //     t = em_stmt(UNDERSCORE, '_');
-        //     break;
         default:
             console.log("default paragraph");
             t = p_stmt_sequence();
             break;
-            // tokenHelper.getAndCache();
-            // break;
     }
     return t;
 }
@@ -636,58 +608,6 @@ function buildEmphasisTree(t, num) {
     }
 }
 
-function _flanking_stmt(inMiddle) {
-    let t = new TreeNode(EM);
-    let p = t.child[0] = new TreeNode(TEXT, '');
-    let q;
-    let openS = tokenString;
-    tokenHelper.getAndCache();
-    let s = '';
-    do {
-        if (tokenType === LFLANK || tokenType === BFLANK) {
-            q = flanking_stmt();
-        } else if (tokenType === LFLANK_UNDERSCORE) {
-            q = underscore_flanking_stmt(true);
-        } else {
-            console.log(tokenString, 'OOOOO');
-            q = new TreeNode(TEXT, tokenString);
-            tokenHelper.getAndCache();
-        }
-        p.sibling = q;
-        p = q;
-    } while(tokenType !== BFLANK 
-                && tokenType !== RFLANK 
-                && tokenType !== MULTINL 
-                && tokenType !== ENDNL
-                && tokenType !== END)
-    if (tokenType === BFLANK || tokenType === RFLANK) {
-        if (tokenString.length === 2) {
-            t.type = STRONG;
-            // t = new TreeNode(STRONG);
-        }
-        if (openS.length > tokenString.length) {
-            // prepend exceed element
-            // q = new TreeNode(TEXT, openS.slice(0, - tokenString.length));
-            // q.sibling = t.child[0].sibling;
-            // t.child[0] = q;
-            p = t;
-            t = new TreeNode(INLINE);
-            t.child[0] = new TreeNode(TEXT, openS.slice(0, - tokenString.length))
-            t.child[0].sibling = p
-        }
-        // match currentToken
-        match(tokenType);
-    } else if (tokenType === END || tokenType === ENDNL) {
-        // t = new TreeNode(TEXT);
-        // t.raw = openS + s;
-        t.type = INLINE;
-        q = new TreeNode(TEXT, openS);
-        q.sibling = t.child[0];
-        t.child[0] = q;
-    }
-    // tokenHelper.getAndCache();
-    return t;
-}
 
 const escapeMap = {
     '"': '&quot;',
