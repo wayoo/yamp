@@ -130,7 +130,6 @@ const whiteSpace = [
     '\t',
     '\n',
 ];
-console.error(whiteSpace.includes(' '))
 
 function notWhitespace(c) {
     return !whiteSpace.includes(c);
